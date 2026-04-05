@@ -1,0 +1,1032 @@
+{
+  "schema_version": 1,
+  "generated_on": "2026-04-05",
+  "source_inventory": "dependents.json",
+  "selection_policy": {
+    "direct_ubuntu_inventory_source": "dependents.json",
+    "direct_ubuntu_dependents_preserved": [
+      "readstat",
+      "tellico"
+    ],
+    "target_application_count": 12,
+    "augmentation_families": [
+      {
+        "family": "third-party-cli-suite",
+        "source_group": "csvutils",
+        "app_ids": [
+          "csvutils-csvbreak",
+          "csvutils-csvcheck",
+          "csvutils-csvcount",
+          "csvutils-csvcut",
+          "csvutils-csvfix",
+          "csvutils-csvgrep"
+        ],
+        "rationale": "csvutils is a pinned external downstream libcsv consumer that yields six distinct CLI utilities with direct parse and rewrite coverage."
+      },
+      {
+        "family": "reference-consumers",
+        "source_group": "libcsv-examples",
+        "app_ids": [
+          "libcsv-example-csvfix",
+          "libcsv-example-csvinfo",
+          "libcsv-example-csvtest",
+          "libcsv-example-csvvalid"
+        ],
+        "rationale": "Only two Ubuntu direct dependents exist, so four pinned upstream reference consumers round the matrix to twelve while still exercising stable public parser and writer APIs."
+      }
+    ],
+    "coverage_goals": [
+      "Preserve the two direct Ubuntu dependents as the only direct_ubuntu_dependent entries.",
+      "Cover CLI conversion/import, GUI or headless GUI-adjacent CSV import, CLI validation/filtering/splitting, and example-sized parser/writer probes.",
+      "Seed later regression choice from all_cves.json and relevant_cves.json, especially the quote-handling issue recorded as rgamble/libcsv#29."
+    ],
+    "stress_case_seed": {
+      "published_cves": [],
+      "relevant_cves": [],
+      "non_cve_note": {
+        "id": "rgamble/libcsv#29",
+        "url": "https://github.com/rgamble/libcsv/issues/29",
+        "title": "How to disable quote processing entirely?"
+      }
+    }
+  },
+  "artifact_roots": {
+    "distfiles": "target/downstream/distfiles",
+    "sources": "target/downstream/sources",
+    "installs": "target/downstream/install",
+    "logs": "target/downstream/logs"
+  },
+  "artifact_path_conventions": {
+    "distfile": "Immutable fetched source artifact under target/downstream/distfiles/. For dsc sources this is the .dsc; for git sources this is a tar.gz snapshot of the pinned commit.",
+    "source_dir": "Per-application extracted or checked-out tree under target/downstream/sources/<app-id>/.",
+    "build_dir": "Per-application build tree under target/downstream/build/<app-id>/.",
+    "install_root": "Host-side staged install tree under target/downstream/install/<app-id>/.",
+    "log_dir": "Per-application build and runtime logs under target/downstream/logs/<app-id>/."
+  },
+  "verifier_phases": [
+    {
+      "id": "check_downstream_inventory_software",
+      "bounce_target": "impl_downstream_inventory"
+    },
+    {
+      "id": "check_downstream_inventory_senior",
+      "bounce_target": "impl_downstream_inventory"
+    }
+  ],
+  "dependents_mapping": {
+    "inventory_source": "dependents.json",
+    "entries": [
+      {
+        "source_package": "readstat",
+        "mapped_application_id": "readstat",
+        "direct_ubuntu_dependent": true,
+        "preserved_runtime_functionality": "CSV-plus-metadata conversion into ReadStat-supported formats."
+      },
+      {
+        "source_package": "tellico",
+        "mapped_application_id": "tellico",
+        "direct_ubuntu_dependent": true,
+        "preserved_runtime_functionality": "GUI CSV import parsing, preview, delimiter handling, and LibraryThing-style header mapping."
+      }
+    ]
+  },
+  "applications": [
+    {
+      "id": "readstat",
+      "display_name": "ReadStat CLI",
+      "matrix_role": "direct-dependent",
+      "direct_ubuntu_dependent": true,
+      "source_group": "readstat",
+      "source": {
+        "kind": "dsc",
+        "locator": "http://archive.ubuntu.com/ubuntu/pool/universe/r/readstat/readstat_1.1.9-2.1build2.dsc",
+        "ref": "1.1.9-2.1build2",
+        "checksum": "sha256:3e5e44a1d6a1459ab54b9f3eb10121e0a53886e48d635efc28d4f42e455d3681",
+        "supporting_files": [
+          {
+            "name": "readstat_1.1.9.orig.tar.gz",
+            "sha256": "89af7c785a7ae3d9a7af6e64a69028829a429f66a14b1b913be22816dc07ddca"
+          },
+          {
+            "name": "readstat_1.1.9-2.1build2.debian.tar.xz",
+            "sha256": "66f594311660df0176479978c9f61bf02be01f8cb78344b6c8868cb035db5b67"
+          }
+        ]
+      },
+      "build_system": "autotools",
+      "build_dependencies": [
+        "autoconf",
+        "automake",
+        "build-essential",
+        "libcsv-dev",
+        "libtool",
+        "libxlsxwriter-dev",
+        "pkg-config",
+        "zlib1g-dev"
+      ],
+      "prepare_steps": [
+        "rm -rf target/downstream/build/readstat target/downstream/install/readstat",
+        "mkdir -p target/downstream/build/readstat target/downstream/install/readstat",
+        "cp -a target/downstream/sources/readstat/. target/downstream/build/readstat/",
+        "if [ ! -x target/downstream/build/readstat/configure ]; then (cd target/downstream/build/readstat && autoreconf -fi); fi"
+      ],
+      "build_steps": [
+        "(cd target/downstream/build/readstat && ./configure --prefix=/usr)",
+        "(cd target/downstream/build/readstat && make -j\"$(nproc)\")"
+      ],
+      "install_steps": [
+        "(cd target/downstream/build/readstat && make install DESTDIR=\"$(pwd)/target/downstream/install/readstat\")"
+      ],
+      "runtime_probes": [
+        {
+          "id": "csv-plus-metadata-roundtrip",
+          "summary": "Reuse the existing direct-dependent smoke: convert quoted semicolon-delimited CSV plus metadata into .dta, extract metadata, and round-trip back to CSV.",
+          "setup_steps": [
+            "mkdir -p target/downstream/logs/readstat",
+            "cat > target/downstream/logs/readstat/input.csv <<'EOF'\nname;score;notes\n\"Alice, A.\";42;\"likes;semicolons\"\nBob;7;\"plain text\"\nEOF",
+            "cat > target/downstream/logs/readstat/metadata.json <<'EOF'\n{\n  \"type\": \"SPSS\",\n  \"separator\": \";\",\n  \"variables\": [\n    {\"name\": \"name\", \"type\": \"STRING\", \"label\": \"Name\"},\n    {\"name\": \"score\", \"type\": \"NUMERIC\", \"label\": \"Score\", \"format\": \"NUMBER\", \"decimals\": 0},\n    {\"name\": \"notes\", \"type\": \"STRING\", \"label\": \"Notes\"}\n  ]\n}\nEOF"
+          ],
+          "run_steps": [
+            "env LD_LIBRARY_PATH=target/downstream/install/readstat/usr/lib/x86_64-linux-gnu:target/downstream/install/readstat/usr/lib target/downstream/install/readstat/usr/bin/readstat target/downstream/logs/readstat/input.csv target/downstream/logs/readstat/metadata.json target/downstream/logs/readstat/output.dta > target/downstream/logs/readstat/convert.log 2>&1",
+            "env LD_LIBRARY_PATH=target/downstream/install/readstat/usr/lib/x86_64-linux-gnu:target/downstream/install/readstat/usr/lib target/downstream/install/readstat/usr/bin/extract_metadata target/downstream/logs/readstat/output.dta target/downstream/logs/readstat/extracted.json > target/downstream/logs/readstat/extract.log 2>&1",
+            "env LD_LIBRARY_PATH=target/downstream/install/readstat/usr/lib/x86_64-linux-gnu:target/downstream/install/readstat/usr/lib target/downstream/install/readstat/usr/bin/readstat target/downstream/logs/readstat/output.dta target/downstream/logs/readstat/roundtrip.csv > target/downstream/logs/readstat/roundtrip.log 2>&1"
+          ],
+          "assert_steps": [
+            "grep -q 'Converted 3 variables and 2 rows' target/downstream/logs/readstat/convert.log",
+            "python3 - <<'PY'\nimport csv, json\nfrom pathlib import Path\nmeta = json.loads(Path('target/downstream/logs/readstat/extracted.json').read_text())\nassert [v['name'] for v in meta['variables']] == ['name', 'score', 'notes']\nwith Path('target/downstream/logs/readstat/roundtrip.csv').open(newline='', encoding='utf-8') as f:\n    rows = list(csv.reader(f))\nassert rows == [['name', 'score', 'notes'], ['Alice, A.', '42.000000', 'likes;semicolons'], ['Bob', '7.000000', 'plain text']]\nPY"
+          ],
+          "expected_exit_code": 0
+        }
+      ],
+      "artifact_paths": {
+        "distfile": "target/downstream/distfiles/readstat_1.1.9-2.1build2.dsc",
+        "source_dir": "target/downstream/sources/readstat",
+        "build_dir": "target/downstream/build/readstat",
+        "install_root": "target/downstream/install/readstat",
+        "log_dir": "target/downstream/logs/readstat"
+      },
+      "libcsv_evidence": [
+        "readstat's configure.ac checks for csv_parse in -lcsv and enables HAVE_CSVREADER when libcsv is present.",
+        "src/bin/read_csv/read_csv.c is reached from parse_csv_plus_json() in src/bin/readstat.c and performs the libcsv-backed CSV input conversion path."
+      ],
+      "stress_profile": {
+        "seeded_from": [
+          "all_cves.json",
+          "relevant_cves.json"
+        ],
+        "non_cve_seed": "rgamble/libcsv#29",
+        "quote_heavy": true,
+        "large_record_candidate": true,
+        "notes": "Streams quoted records and metadata-driven type conversion through the libcsv-backed CSV input path."
+      }
+    },
+    {
+      "id": "tellico",
+      "display_name": "Tellico",
+      "matrix_role": "direct-dependent",
+      "direct_ubuntu_dependent": true,
+      "source_group": "tellico",
+      "source": {
+        "kind": "dsc",
+        "locator": "http://archive.ubuntu.com/ubuntu/pool/universe/t/tellico/tellico_3.5.3-1ubuntu5.dsc",
+        "ref": "3.5.3-1ubuntu5",
+        "checksum": "sha256:69b5a3610f799f5f5e16c1c5d27d6b41da5b4606bbbb8688705e4ea4aa511533",
+        "supporting_files": [
+          {
+            "name": "tellico_3.5.3.orig.tar.xz",
+            "sha256": "e72a4d9d6541d77651010970d6069854fcb0b33f11977e5182316ec85f5bf671"
+          },
+          {
+            "name": "tellico_3.5.3-1ubuntu5.debian.tar.xz",
+            "sha256": "59d802a84231bc9dccd3d0168a0059dfaa42da4a2a6e89680ee627a06923449a"
+          }
+        ]
+      },
+      "build_system": "cmake+ninja",
+      "build_dependencies": [
+        "build-essential",
+        "cmake",
+        "dbus-x11",
+        "extra-cmake-modules",
+        "gettext",
+        "libbtparse-dev",
+        "libcdio-dev",
+        "libcsv-dev",
+        "libexempi-dev",
+        "libkf5archive-dev",
+        "libkf5cddb-dev",
+        "libkf5codecs-dev",
+        "libkf5config-dev",
+        "libkf5configwidgets-dev",
+        "libkf5coreaddons-dev",
+        "libkf5crash-dev",
+        "libkf5doctools-dev",
+        "libkf5filemetadata-dev",
+        "libkf5guiaddons-dev",
+        "libkf5i18n-dev",
+        "libkf5iconthemes-dev",
+        "libkf5itemmodels-dev",
+        "libkf5jobwidgets-dev",
+        "libkf5khtml-dev",
+        "libkf5kio-dev",
+        "libkf5newstuff-dev",
+        "libkf5sane-dev",
+        "libkf5solid-dev",
+        "libkf5sonnet-dev",
+        "libkf5textwidgets-dev",
+        "libkf5wallet-dev",
+        "libkf5widgetsaddons-dev",
+        "libkf5xmlgui-dev",
+        "libksanecore-dev",
+        "libpoppler-qt5-dev",
+        "libqt5charts5-dev",
+        "libtag1-dev",
+        "libyaz-dev",
+        "ninja-build",
+        "pkg-config",
+        "qtbase5-dev",
+        "qtwebengine5-dev",
+        "tidy",
+        "xauth",
+        "xvfb",
+        "yaz",
+        "zlib1g-dev"
+      ],
+      "prepare_steps": [
+        "rm -rf target/downstream/build/tellico target/downstream/install/tellico",
+        "mkdir -p target/downstream/build/tellico target/downstream/install/tellico"
+      ],
+      "build_steps": [
+        "cmake -S target/downstream/sources/tellico -B target/downstream/build/tellico -GNinja -DBUILD_TESTING=ON -DBUILD_FETCHER_TESTS=OFF -DUSE_KHTML=ON -DCMAKE_BUILD_TYPE=RelWithDebInfo -DCMAKE_INSTALL_PREFIX=/usr",
+        "cmake --build target/downstream/build/tellico --parallel --target tellico csvtest"
+      ],
+      "install_steps": [
+        "DESTDIR=\"$(pwd)/target/downstream/install/tellico\" cmake --install target/downstream/build/tellico"
+      ],
+      "runtime_probes": [
+        {
+          "id": "upstream-csvtest",
+          "summary": "Reuse the existing Tellico direct-dependent smoke by running the project's csvtest under xvfb through ctest.",
+          "setup_steps": [
+            "mkdir -p target/downstream/logs/tellico"
+          ],
+          "run_steps": [
+            "(cd target/downstream/build/tellico && QT_QPA_PLATFORM=offscreen xvfb-run -a ctest -R '^csvtest$' --output-on-failure > $(pwd)/../../logs/tellico/csvtest.log 2>&1)"
+          ],
+          "assert_steps": [
+            "test -s target/downstream/logs/tellico/csvtest.log"
+          ],
+          "expected_exit_code": 0
+        }
+      ],
+      "artifact_paths": {
+        "distfile": "target/downstream/distfiles/tellico_3.5.3-1ubuntu5.dsc",
+        "source_dir": "target/downstream/sources/tellico",
+        "build_dir": "target/downstream/build/tellico",
+        "install_root": "target/downstream/install/tellico",
+        "log_dir": "target/downstream/logs/tellico"
+      },
+      "libcsv_evidence": [
+        "Top-level CMakeLists.txt calls find_package(Csv 3.0) and FindCsv.cmake searches for csv.h and the csv library.",
+        "src/translators/csvparser.cpp includes csv.h when HAVE_LIBCSV is defined and uses csv_init, csv_set_delim, csv_parse, csv_fini, and csv_free for CSV import parsing."
+      ],
+      "stress_profile": {
+        "seeded_from": [
+          "all_cves.json",
+          "relevant_cves.json"
+        ],
+        "non_cve_seed": "rgamble/libcsv#29",
+        "quote_heavy": true,
+        "large_record_candidate": false,
+        "notes": "GUI import path exercises delimiter detection, header mapping, and quoted-token parsing through libcsv."
+      }
+    },
+    {
+      "id": "csvutils-csvbreak",
+      "display_name": "csvbreak",
+      "matrix_role": "third-party-utility",
+      "direct_ubuntu_dependent": false,
+      "source_group": "csvutils",
+      "source": {
+        "kind": "git",
+        "locator": "https://github.com/rgamble/csvutils.git",
+        "ref": "e57951b271f7345bde5af77b2c45c91cfd1501f8"
+      },
+      "build_system": "gnu-make",
+      "build_dependencies": [
+        "build-essential",
+        "gzip",
+        "libcsv-dev",
+        "make"
+      ],
+      "prepare_steps": [
+        "rm -rf target/downstream/build/csvutils-csvbreak target/downstream/install/csvutils-csvbreak",
+        "mkdir -p target/downstream/build/csvutils-csvbreak target/downstream/install/csvutils-csvbreak/usr/bin target/downstream/install/csvutils-csvbreak/usr/share/man/man1",
+        "cp -a target/downstream/sources/csvutils-csvbreak/. target/downstream/build/csvutils-csvbreak/"
+      ],
+      "build_steps": [
+        "(cd target/downstream/build/csvutils-csvbreak && make CPPFLAGS='' CFLAGS='-Wall -ansi -pedantic' INCLUDES='-I include' csvbreak)"
+      ],
+      "install_steps": [
+        "install -Dm0755 target/downstream/build/csvutils-csvbreak/csvbreak target/downstream/install/csvutils-csvbreak/usr/bin/csvbreak",
+        "install -Dm0644 target/downstream/build/csvutils-csvbreak/csvbreak.1.gz target/downstream/install/csvutils-csvbreak/usr/share/man/man1/csvbreak.1.gz"
+      ],
+      "runtime_probes": [
+        {
+          "id": "count-records-by-field",
+          "summary": "Count rows by the role column without materializing split files.",
+          "setup_steps": [
+            "mkdir -p target/downstream/logs/csvutils-csvbreak",
+            "cat > target/downstream/logs/csvutils-csvbreak/fixture.csv <<'EOF'\nname,role,score,notes\n\"Alice, A.\",admin,42,\"likes;semicolons\"\nBob,user,7,\"plain text\"\nCara,user,99,\"multi word\"\nEOF"
+          ],
+          "run_steps": [
+            "(cd target/downstream/logs/csvutils-csvbreak && ../../install/csvutils-csvbreak/usr/bin/csvbreak -c -f role fixture.csv > csvbreak.out)"
+          ],
+          "assert_steps": [
+            "python3 - <<'PY'\nfrom pathlib import Path\nlines = sorted(Path('target/downstream/logs/csvutils-csvbreak/csvbreak.out').read_text().splitlines())\nassert lines == ['admin: 1', 'user: 2'], lines\nPY"
+          ],
+          "expected_exit_code": 0
+        }
+      ],
+      "artifact_paths": {
+        "distfile": "target/downstream/distfiles/csvutils-e57951b271f7345bde5af77b2c45c91cfd1501f8.tar.gz",
+        "source_dir": "target/downstream/sources/csvutils-csvbreak",
+        "build_dir": "target/downstream/build/csvutils-csvbreak",
+        "install_root": "target/downstream/install/csvutils-csvbreak",
+        "log_dir": "target/downstream/logs/csvutils-csvbreak"
+      },
+      "libcsv_evidence": [
+        "src/csvbreak.c includes <csv.h> and calls csv_init, csv_set_delim, csv_set_quote, csv_parse, csv_fini, csv_error, and csv_strerror while streaming records.",
+        "src/csvbreak.c calls csv_fwrite2 in print_record() and print_header(), so it exercises both parsing and CSV-safe rewriting."
+      ],
+      "stress_profile": {
+        "seeded_from": [
+          "all_cves.json",
+          "relevant_cves.json"
+        ],
+        "non_cve_seed": "rgamble/libcsv#29",
+        "quote_heavy": true,
+        "large_record_candidate": true,
+        "notes": "Header-name resolution and streamed record grouping make csvbreak a quote-heavy and large-record candidate."
+      }
+    },
+    {
+      "id": "csvutils-csvcheck",
+      "display_name": "csvcheck",
+      "matrix_role": "third-party-utility",
+      "direct_ubuntu_dependent": false,
+      "source_group": "csvutils",
+      "source": {
+        "kind": "git",
+        "locator": "https://github.com/rgamble/csvutils.git",
+        "ref": "e57951b271f7345bde5af77b2c45c91cfd1501f8"
+      },
+      "build_system": "gnu-make",
+      "build_dependencies": [
+        "build-essential",
+        "gzip",
+        "libcsv-dev",
+        "make"
+      ],
+      "prepare_steps": [
+        "rm -rf target/downstream/build/csvutils-csvcheck target/downstream/install/csvutils-csvcheck",
+        "mkdir -p target/downstream/build/csvutils-csvcheck target/downstream/install/csvutils-csvcheck/usr/bin target/downstream/install/csvutils-csvcheck/usr/share/man/man1",
+        "cp -a target/downstream/sources/csvutils-csvcheck/. target/downstream/build/csvutils-csvcheck/"
+      ],
+      "build_steps": [
+        "(cd target/downstream/build/csvutils-csvcheck && make CPPFLAGS='' CFLAGS='-Wall -ansi -pedantic' INCLUDES='-I include' csvcheck)"
+      ],
+      "install_steps": [
+        "install -Dm0755 target/downstream/build/csvutils-csvcheck/csvcheck target/downstream/install/csvutils-csvcheck/usr/bin/csvcheck",
+        "install -Dm0644 target/downstream/build/csvutils-csvcheck/csvcheck.1.gz target/downstream/install/csvutils-csvcheck/usr/share/man/man1/csvcheck.1.gz"
+      ],
+      "runtime_probes": [
+        {
+          "id": "report-missing-closing-quote",
+          "summary": "Feed a malformed quoted record and assert the strict-parser failure report.",
+          "setup_steps": [
+            "mkdir -p target/downstream/logs/csvutils-csvcheck",
+            "cat > target/downstream/logs/csvutils-csvcheck/bad.csv <<'EOF'\nname,notes\nAlice,\"unterminated\nEOF"
+          ],
+          "run_steps": [
+            "(cd target/downstream/logs/csvutils-csvcheck && ../../install/csvutils-csvcheck/usr/bin/csvcheck bad.csv > csvcheck.out)"
+          ],
+          "assert_steps": [
+            "grep -q 'missing closing quote' target/downstream/logs/csvutils-csvcheck/csvcheck.out"
+          ],
+          "expected_exit_code": 0
+        }
+      ],
+      "artifact_paths": {
+        "distfile": "target/downstream/distfiles/csvutils-e57951b271f7345bde5af77b2c45c91cfd1501f8.tar.gz",
+        "source_dir": "target/downstream/sources/csvutils-csvcheck",
+        "build_dir": "target/downstream/build/csvutils-csvcheck",
+        "install_root": "target/downstream/install/csvutils-csvcheck",
+        "log_dir": "target/downstream/logs/csvutils-csvcheck"
+      },
+      "libcsv_evidence": [
+        "src/csvcheck.c includes <csv.h> and initializes the parser with CSV_STRICT|CSV_STRICT_FINI before calling csv_parse.",
+        "src/csvcheck.c reports csv_error() and csv_strerror(), making it a direct quote-regression canary."
+      ],
+      "stress_profile": {
+        "seeded_from": [
+          "all_cves.json",
+          "relevant_cves.json"
+        ],
+        "non_cve_seed": "rgamble/libcsv#29",
+        "quote_heavy": true,
+        "large_record_candidate": false,
+        "notes": "Purpose-built strict quote validator seeded directly from the quote-handling issue."
+      }
+    },
+    {
+      "id": "csvutils-csvcount",
+      "display_name": "csvcount",
+      "matrix_role": "third-party-utility",
+      "direct_ubuntu_dependent": false,
+      "source_group": "csvutils",
+      "source": {
+        "kind": "git",
+        "locator": "https://github.com/rgamble/csvutils.git",
+        "ref": "e57951b271f7345bde5af77b2c45c91cfd1501f8"
+      },
+      "build_system": "gnu-make",
+      "build_dependencies": [
+        "build-essential",
+        "gzip",
+        "libcsv-dev",
+        "make"
+      ],
+      "prepare_steps": [
+        "rm -rf target/downstream/build/csvutils-csvcount target/downstream/install/csvutils-csvcount",
+        "mkdir -p target/downstream/build/csvutils-csvcount target/downstream/install/csvutils-csvcount/usr/bin target/downstream/install/csvutils-csvcount/usr/share/man/man1",
+        "cp -a target/downstream/sources/csvutils-csvcount/. target/downstream/build/csvutils-csvcount/"
+      ],
+      "build_steps": [
+        "(cd target/downstream/build/csvutils-csvcount && make CPPFLAGS='' CFLAGS='-Wall -ansi -pedantic' INCLUDES='-I include' csvcount)"
+      ],
+      "install_steps": [
+        "install -Dm0755 target/downstream/build/csvutils-csvcount/csvcount target/downstream/install/csvutils-csvcount/usr/bin/csvcount",
+        "install -Dm0644 target/downstream/build/csvutils-csvcount/csvcount.1.gz target/downstream/install/csvutils-csvcount/usr/share/man/man1/csvcount.1.gz"
+      ],
+      "runtime_probes": [
+        {
+          "id": "count-rows-and-fields",
+          "summary": "Count rows and fields in the shared quoted CSV fixture.",
+          "setup_steps": [
+            "mkdir -p target/downstream/logs/csvutils-csvcount",
+            "cat > target/downstream/logs/csvutils-csvcount/fixture.csv <<'EOF'\nname,role,score,notes\n\"Alice, A.\",admin,42,\"likes;semicolons\"\nBob,user,7,\"plain text\"\nCara,user,99,\"multi word\"\nEOF"
+          ],
+          "run_steps": [
+            "(cd target/downstream/logs/csvutils-csvcount && ../../install/csvutils-csvcount/usr/bin/csvcount -r -f fixture.csv > csvcount.out)"
+          ],
+          "assert_steps": [
+            "python3 - <<'PY'\nfrom pathlib import Path\nparts = Path('target/downstream/logs/csvutils-csvcount/csvcount.out').read_text().split()\nassert parts == ['4', '16', 'fixture.csv'], parts\nPY"
+          ],
+          "expected_exit_code": 0
+        }
+      ],
+      "artifact_paths": {
+        "distfile": "target/downstream/distfiles/csvutils-e57951b271f7345bde5af77b2c45c91cfd1501f8.tar.gz",
+        "source_dir": "target/downstream/sources/csvutils-csvcount",
+        "build_dir": "target/downstream/build/csvutils-csvcount",
+        "install_root": "target/downstream/install/csvutils-csvcount",
+        "log_dir": "target/downstream/logs/csvutils-csvcount"
+      },
+      "libcsv_evidence": [
+        "src/csvcount.c includes <csv.h> and drives csv_parse with callbacks that increment row and field totals.",
+        "The utility exposes streamed callback counting, which makes it a low-overhead large-record regression canary."
+      ],
+      "stress_profile": {
+        "seeded_from": [
+          "all_cves.json",
+          "relevant_cves.json"
+        ],
+        "non_cve_seed": "rgamble/libcsv#29",
+        "quote_heavy": true,
+        "large_record_candidate": true,
+        "notes": "Cheap streamed counter probe for large quoted records."
+      }
+    },
+    {
+      "id": "csvutils-csvcut",
+      "display_name": "csvcut",
+      "matrix_role": "third-party-utility",
+      "direct_ubuntu_dependent": false,
+      "source_group": "csvutils",
+      "source": {
+        "kind": "git",
+        "locator": "https://github.com/rgamble/csvutils.git",
+        "ref": "e57951b271f7345bde5af77b2c45c91cfd1501f8"
+      },
+      "build_system": "gnu-make",
+      "build_dependencies": [
+        "build-essential",
+        "gzip",
+        "libcsv-dev",
+        "make"
+      ],
+      "prepare_steps": [
+        "rm -rf target/downstream/build/csvutils-csvcut target/downstream/install/csvutils-csvcut",
+        "mkdir -p target/downstream/build/csvutils-csvcut target/downstream/install/csvutils-csvcut/usr/bin target/downstream/install/csvutils-csvcut/usr/share/man/man1",
+        "cp -a target/downstream/sources/csvutils-csvcut/. target/downstream/build/csvutils-csvcut/"
+      ],
+      "build_steps": [
+        "(cd target/downstream/build/csvutils-csvcut && make CPPFLAGS='' CFLAGS='-Wall -ansi -pedantic' INCLUDES='-I include' csvcut)"
+      ],
+      "install_steps": [
+        "install -Dm0755 target/downstream/build/csvutils-csvcut/csvcut target/downstream/install/csvutils-csvcut/usr/bin/csvcut",
+        "install -Dm0644 target/downstream/build/csvutils-csvcut/csvcut.1.gz target/downstream/install/csvutils-csvcut/usr/share/man/man1/csvcut.1.gz"
+      ],
+      "runtime_probes": [
+        {
+          "id": "select-name-and-score-columns",
+          "summary": "Select named fields from the shared fixture and preserve quoting on the name column.",
+          "setup_steps": [
+            "mkdir -p target/downstream/logs/csvutils-csvcut",
+            "cat > target/downstream/logs/csvutils-csvcut/fixture.csv <<'EOF'\nname,role,score,notes\n\"Alice, A.\",admin,42,\"likes;semicolons\"\nBob,user,7,\"plain text\"\nCara,user,99,\"multi word\"\nEOF"
+          ],
+          "run_steps": [
+            "(cd target/downstream/logs/csvutils-csvcut && ../../install/csvutils-csvcut/usr/bin/csvcut -f name,score fixture.csv > csvcut.out)"
+          ],
+          "assert_steps": [
+            "python3 - <<'PY'\nfrom pathlib import Path\nexpected = 'name,score\\n\"Alice, A.\",42\\nBob,7\\nCara,99\\n'\nactual = Path('target/downstream/logs/csvutils-csvcut/csvcut.out').read_text()\nassert actual == expected, actual\nPY"
+          ],
+          "expected_exit_code": 0
+        }
+      ],
+      "artifact_paths": {
+        "distfile": "target/downstream/distfiles/csvutils-e57951b271f7345bde5af77b2c45c91cfd1501f8.tar.gz",
+        "source_dir": "target/downstream/sources/csvutils-csvcut",
+        "build_dir": "target/downstream/build/csvutils-csvcut",
+        "install_root": "target/downstream/install/csvutils-csvcut",
+        "log_dir": "target/downstream/logs/csvutils-csvcut"
+      },
+      "libcsv_evidence": [
+        "src/csvcut.c includes <csv.h>, uses csv_parse to resolve header names and fields, and toggles strict mode when requested.",
+        "src/csvcut.c rewrites selected fields with csv_fwrite2, so it covers both parser callbacks and writer escaping."
+      ],
+      "stress_profile": {
+        "seeded_from": [
+          "all_cves.json",
+          "relevant_cves.json"
+        ],
+        "non_cve_seed": "rgamble/libcsv#29",
+        "quote_heavy": true,
+        "large_record_candidate": true,
+        "notes": "Header-name resolution plus quoted field rewriting make csvcut a strong quote-heavy regression candidate."
+      }
+    },
+    {
+      "id": "csvutils-csvfix",
+      "display_name": "csvfix",
+      "matrix_role": "third-party-utility",
+      "direct_ubuntu_dependent": false,
+      "source_group": "csvutils",
+      "source": {
+        "kind": "git",
+        "locator": "https://github.com/rgamble/csvutils.git",
+        "ref": "e57951b271f7345bde5af77b2c45c91cfd1501f8"
+      },
+      "build_system": "gnu-make",
+      "build_dependencies": [
+        "build-essential",
+        "gzip",
+        "libcsv-dev",
+        "make"
+      ],
+      "prepare_steps": [
+        "rm -rf target/downstream/build/csvutils-csvfix target/downstream/install/csvutils-csvfix",
+        "mkdir -p target/downstream/build/csvutils-csvfix target/downstream/install/csvutils-csvfix/usr/bin target/downstream/install/csvutils-csvfix/usr/share/man/man1",
+        "cp -a target/downstream/sources/csvutils-csvfix/. target/downstream/build/csvutils-csvfix/"
+      ],
+      "build_steps": [
+        "(cd target/downstream/build/csvutils-csvfix && make CPPFLAGS='' CFLAGS='-Wall -ansi -pedantic' INCLUDES='-I include' csvfix)"
+      ],
+      "install_steps": [
+        "install -Dm0755 target/downstream/build/csvutils-csvfix/csvfix target/downstream/install/csvutils-csvfix/usr/bin/csvfix",
+        "install -Dm0644 target/downstream/build/csvutils-csvfix/csvfix.1.gz target/downstream/install/csvutils-csvfix/usr/share/man/man1/csvfix.1.gz"
+      ],
+      "runtime_probes": [
+        {
+          "id": "normalize-and-requote",
+          "summary": "Rewrite the shared fixture with semicolon delimiters and single-quote output quoting.",
+          "setup_steps": [
+            "mkdir -p target/downstream/logs/csvutils-csvfix",
+            "cat > target/downstream/logs/csvutils-csvfix/fixture.csv <<'EOF'\nname,role,score,notes\n\"Alice, A.\",admin,42,\"likes;semicolons\"\nBob,user,7,\"plain text\"\nCara,user,99,\"multi word\"\nEOF"
+          ],
+          "run_steps": [
+            "(cd target/downstream/logs/csvutils-csvfix && ../../install/csvutils-csvfix/usr/bin/csvfix --output-delimiter ';' --output-quote \"'\" fixture.csv fixed.csv > csvfix.out)"
+          ],
+          "assert_steps": [
+            "python3 - <<'PY'\nfrom pathlib import Path\nexpected = \"name;role;score;notes\\n'Alice, A.';admin;42;likes;semicolons\\nBob;user;7;plain text\\nCara;user;99;multi word\\n\"\nactual = Path('target/downstream/logs/csvutils-csvfix/fixed.csv').read_text()\nassert actual == expected, actual\nPY"
+          ],
+          "expected_exit_code": 0
+        }
+      ],
+      "artifact_paths": {
+        "distfile": "target/downstream/distfiles/csvutils-e57951b271f7345bde5af77b2c45c91cfd1501f8.tar.gz",
+        "source_dir": "target/downstream/sources/csvutils-csvfix",
+        "build_dir": "target/downstream/build/csvutils-csvfix",
+        "install_root": "target/downstream/install/csvutils-csvfix",
+        "log_dir": "target/downstream/logs/csvutils-csvfix"
+      },
+      "libcsv_evidence": [
+        "src/csvfix.c includes <csv.h> and calls csv_init, csv_set_delim, csv_set_quote, csv_parse, csv_fini, and csv_free on streamed input.",
+        "src/csvfix.c emits normalized records with csv_fwrite2, including caller-controlled output delimiter and quote characters."
+      ],
+      "stress_profile": {
+        "seeded_from": [
+          "all_cves.json",
+          "relevant_cves.json"
+        ],
+        "non_cve_seed": "rgamble/libcsv#29",
+        "quote_heavy": true,
+        "large_record_candidate": true,
+        "notes": "Directly rewrites parsed fields and quote characters, so it is sensitive to quote-expansion regressions."
+      }
+    },
+    {
+      "id": "csvutils-csvgrep",
+      "display_name": "csvgrep",
+      "matrix_role": "third-party-utility",
+      "direct_ubuntu_dependent": false,
+      "source_group": "csvutils",
+      "source": {
+        "kind": "git",
+        "locator": "https://github.com/rgamble/csvutils.git",
+        "ref": "e57951b271f7345bde5af77b2c45c91cfd1501f8"
+      },
+      "build_system": "gnu-make",
+      "build_dependencies": [
+        "build-essential",
+        "gzip",
+        "libcsv-dev",
+        "libpcre3-dev",
+        "make"
+      ],
+      "prepare_steps": [
+        "rm -rf target/downstream/build/csvutils-csvgrep target/downstream/install/csvutils-csvgrep",
+        "mkdir -p target/downstream/build/csvutils-csvgrep target/downstream/install/csvutils-csvgrep/usr/bin target/downstream/install/csvutils-csvgrep/usr/share/man/man1",
+        "cp -a target/downstream/sources/csvutils-csvgrep/. target/downstream/build/csvutils-csvgrep/"
+      ],
+      "build_steps": [
+        "(cd target/downstream/build/csvutils-csvgrep && make CPPFLAGS='' CFLAGS='-Wall -ansi -pedantic' INCLUDES='-I include' csvgrep)"
+      ],
+      "install_steps": [
+        "install -Dm0755 target/downstream/build/csvutils-csvgrep/csvgrep target/downstream/install/csvutils-csvgrep/usr/bin/csvgrep",
+        "install -Dm0644 target/downstream/build/csvutils-csvgrep/csvgrep.1.gz target/downstream/install/csvutils-csvgrep/usr/share/man/man1/csvgrep.1.gz"
+      ],
+      "runtime_probes": [
+        {
+          "id": "count-user-rows",
+          "summary": "Count rows whose role field matches user.",
+          "setup_steps": [
+            "mkdir -p target/downstream/logs/csvutils-csvgrep",
+            "cat > target/downstream/logs/csvutils-csvgrep/fixture.csv <<'EOF'\nname,role,score,notes\n\"Alice, A.\",admin,42,\"likes;semicolons\"\nBob,user,7,\"plain text\"\nCara,user,99,\"multi word\"\nEOF"
+          ],
+          "run_steps": [
+            "(cd target/downstream/logs/csvutils-csvgrep && ../../install/csvutils-csvgrep/usr/bin/csvgrep -f role -c '^user$' fixture.csv > csvgrep.out)"
+          ],
+          "assert_steps": [
+            "grep -qx '2' target/downstream/logs/csvutils-csvgrep/csvgrep.out"
+          ],
+          "expected_exit_code": 0
+        }
+      ],
+      "artifact_paths": {
+        "distfile": "target/downstream/distfiles/csvutils-e57951b271f7345bde5af77b2c45c91cfd1501f8.tar.gz",
+        "source_dir": "target/downstream/sources/csvutils-csvgrep",
+        "build_dir": "target/downstream/build/csvutils-csvgrep",
+        "install_root": "target/downstream/install/csvutils-csvgrep",
+        "log_dir": "target/downstream/logs/csvutils-csvgrep"
+      },
+      "libcsv_evidence": [
+        "src/csvgrep.c includes <csv.h>, tokenizes records with csv_parse, and resolves header names before evaluating matches.",
+        "Matching records are re-emitted with csv_fwrite2 in print_record(), so the utility covers parser and writer behavior together."
+      ],
+      "stress_profile": {
+        "seeded_from": [
+          "all_cves.json",
+          "relevant_cves.json"
+        ],
+        "non_cve_seed": "rgamble/libcsv#29",
+        "quote_heavy": true,
+        "large_record_candidate": true,
+        "notes": "Field-aware filtering traverses the full parser state machine after tokenization."
+      }
+    },
+    {
+      "id": "libcsv-example-csvfix",
+      "display_name": "csvfix (libcsv example)",
+      "matrix_role": "reference-consumer",
+      "direct_ubuntu_dependent": false,
+      "source_group": "libcsv-examples",
+      "source": {
+        "kind": "dsc",
+        "locator": "http://archive.ubuntu.com/ubuntu/pool/universe/libc/libcsv/libcsv_3.0.3+dfsg-6.dsc",
+        "ref": "3.0.3+dfsg-6",
+        "checksum": "sha256:3e0a27ba29b9435d8bf7cbd825a1cdbec8375dedc8bffaf7ea458c15f238bc3f",
+        "supporting_files": [
+          {
+            "name": "libcsv_3.0.3+dfsg.orig.tar.gz",
+            "sha256": "06fddfaca720a4be7603bad63eb1833bca5b6c5a69b42b1c518a02cda2a73aef"
+          },
+          {
+            "name": "libcsv_3.0.3+dfsg-6.debian.tar.xz",
+            "sha256": "5af11eef753b3bd3a2ce46515b593f8fba3316d51473ca113322daa3b8c83311"
+          }
+        ]
+      },
+      "build_system": "gnu-make",
+      "build_dependencies": [
+        "build-essential",
+        "libcsv-dev",
+        "make"
+      ],
+      "prepare_steps": [
+        "rm -rf target/downstream/build/libcsv-example-csvfix target/downstream/install/libcsv-example-csvfix",
+        "mkdir -p target/downstream/build/libcsv-example-csvfix target/downstream/install/libcsv-example-csvfix/usr/bin",
+        "cp -a target/downstream/sources/libcsv-example-csvfix/. target/downstream/build/libcsv-example-csvfix/"
+      ],
+      "build_steps": [
+        "(cd target/downstream/build/libcsv-example-csvfix/examples && make csvfix LDFLAGS='-lcsv')"
+      ],
+      "install_steps": [
+        "install -Dm0755 target/downstream/build/libcsv-example-csvfix/examples/csvfix target/downstream/install/libcsv-example-csvfix/usr/bin/csvfix"
+      ],
+      "runtime_probes": [
+        {
+          "id": "normalize-example-output",
+          "summary": "Run the upstream csvfix example and assert the normalized output file.",
+          "setup_steps": [
+            "mkdir -p target/downstream/logs/libcsv-example-csvfix",
+            "cat > target/downstream/logs/libcsv-example-csvfix/fixture.csv <<'EOF'\nname,role,score,notes\n\"Alice, A.\",admin,42,\"likes;semicolons\"\nBob,user,7,\"plain text\"\nCara,user,99,\"multi word\"\nEOF"
+          ],
+          "run_steps": [
+            "target/downstream/install/libcsv-example-csvfix/usr/bin/csvfix target/downstream/logs/libcsv-example-csvfix/fixture.csv target/downstream/logs/libcsv-example-csvfix/fixed.csv > target/downstream/logs/libcsv-example-csvfix/csvfix.out 2>&1"
+          ],
+          "assert_steps": [
+            "python3 - <<'PY'\nfrom pathlib import Path\nexpected = 'name,role,score,notes\\n\"Alice, A.\",admin,42,likes;semicolons\\nBob,user,7,plain text\\nCara,user,99,multi word\\n'\nactual = Path('target/downstream/logs/libcsv-example-csvfix/fixed.csv').read_text()\nassert actual == expected, actual\nPY"
+          ],
+          "expected_exit_code": 0
+        }
+      ],
+      "artifact_paths": {
+        "distfile": "target/downstream/distfiles/libcsv_3.0.3+dfsg-6.dsc",
+        "source_dir": "target/downstream/sources/libcsv-example-csvfix",
+        "build_dir": "target/downstream/build/libcsv-example-csvfix",
+        "install_root": "target/downstream/install/libcsv-example-csvfix",
+        "log_dir": "target/downstream/logs/libcsv-example-csvfix"
+      },
+      "libcsv_evidence": [
+        "examples/csvfix.c includes <csv.h> and drives csv_parse over fread() chunks before calling csv_fwrite in its field callback.",
+        "The example is the canonical small parse-then-write normalization consumer shipped with libcsv."
+      ],
+      "stress_profile": {
+        "seeded_from": [
+          "all_cves.json",
+          "relevant_cves.json"
+        ],
+        "non_cve_seed": "rgamble/libcsv#29",
+        "quote_heavy": true,
+        "large_record_candidate": true,
+        "notes": "Small upstream parse-then-write normalization probe."
+      }
+    },
+    {
+      "id": "libcsv-example-csvinfo",
+      "display_name": "csvinfo (libcsv example)",
+      "matrix_role": "reference-consumer",
+      "direct_ubuntu_dependent": false,
+      "source_group": "libcsv-examples",
+      "source": {
+        "kind": "dsc",
+        "locator": "http://archive.ubuntu.com/ubuntu/pool/universe/libc/libcsv/libcsv_3.0.3+dfsg-6.dsc",
+        "ref": "3.0.3+dfsg-6",
+        "checksum": "sha256:3e0a27ba29b9435d8bf7cbd825a1cdbec8375dedc8bffaf7ea458c15f238bc3f",
+        "supporting_files": [
+          {
+            "name": "libcsv_3.0.3+dfsg.orig.tar.gz",
+            "sha256": "06fddfaca720a4be7603bad63eb1833bca5b6c5a69b42b1c518a02cda2a73aef"
+          },
+          {
+            "name": "libcsv_3.0.3+dfsg-6.debian.tar.xz",
+            "sha256": "5af11eef753b3bd3a2ce46515b593f8fba3316d51473ca113322daa3b8c83311"
+          }
+        ]
+      },
+      "build_system": "gnu-make",
+      "build_dependencies": [
+        "build-essential",
+        "libcsv-dev",
+        "make"
+      ],
+      "prepare_steps": [
+        "rm -rf target/downstream/build/libcsv-example-csvinfo target/downstream/install/libcsv-example-csvinfo",
+        "mkdir -p target/downstream/build/libcsv-example-csvinfo target/downstream/install/libcsv-example-csvinfo/usr/bin",
+        "cp -a target/downstream/sources/libcsv-example-csvinfo/. target/downstream/build/libcsv-example-csvinfo/"
+      ],
+      "build_steps": [
+        "(cd target/downstream/build/libcsv-example-csvinfo/examples && make csvinfo LDFLAGS='-lcsv')"
+      ],
+      "install_steps": [
+        "install -Dm0755 target/downstream/build/libcsv-example-csvinfo/examples/csvinfo target/downstream/install/libcsv-example-csvinfo/usr/bin/csvinfo"
+      ],
+      "runtime_probes": [
+        {
+          "id": "report-field-and-row-totals",
+          "summary": "Count rows and fields in the shared quoted CSV fixture.",
+          "setup_steps": [
+            "mkdir -p target/downstream/logs/libcsv-example-csvinfo",
+            "cat > target/downstream/logs/libcsv-example-csvinfo/fixture.csv <<'EOF'\nname,role,score,notes\n\"Alice, A.\",admin,42,\"likes;semicolons\"\nBob,user,7,\"plain text\"\nCara,user,99,\"multi word\"\nEOF"
+          ],
+          "run_steps": [
+            "target/downstream/install/libcsv-example-csvinfo/usr/bin/csvinfo target/downstream/logs/libcsv-example-csvinfo/fixture.csv > target/downstream/logs/libcsv-example-csvinfo/csvinfo.out 2>&1"
+          ],
+          "assert_steps": [
+            "grep -qx 'target/downstream/logs/libcsv-example-csvinfo/fixture.csv: 16 fields, 4 rows' target/downstream/logs/libcsv-example-csvinfo/csvinfo.out"
+          ],
+          "expected_exit_code": 0
+        }
+      ],
+      "artifact_paths": {
+        "distfile": "target/downstream/distfiles/libcsv_3.0.3+dfsg-6.dsc",
+        "source_dir": "target/downstream/sources/libcsv-example-csvinfo",
+        "build_dir": "target/downstream/build/libcsv-example-csvinfo",
+        "install_root": "target/downstream/install/libcsv-example-csvinfo",
+        "log_dir": "target/downstream/logs/libcsv-example-csvinfo"
+      },
+      "libcsv_evidence": [
+        "examples/csvinfo.c includes <csv.h> and counts fields and rows via csv_parse/csv_fini callbacks.",
+        "The example also sets custom space and terminator callbacks, broadening API coverage beyond the default parser path."
+      ],
+      "stress_profile": {
+        "seeded_from": [
+          "all_cves.json",
+          "relevant_cves.json"
+        ],
+        "non_cve_seed": "rgamble/libcsv#29",
+        "quote_heavy": true,
+        "large_record_candidate": true,
+        "notes": "Lightweight callback-counting probe for large streamed records."
+      }
+    },
+    {
+      "id": "libcsv-example-csvtest",
+      "display_name": "csvtest (libcsv example)",
+      "matrix_role": "reference-consumer",
+      "direct_ubuntu_dependent": false,
+      "source_group": "libcsv-examples",
+      "source": {
+        "kind": "dsc",
+        "locator": "http://archive.ubuntu.com/ubuntu/pool/universe/libc/libcsv/libcsv_3.0.3+dfsg-6.dsc",
+        "ref": "3.0.3+dfsg-6",
+        "checksum": "sha256:3e0a27ba29b9435d8bf7cbd825a1cdbec8375dedc8bffaf7ea458c15f238bc3f",
+        "supporting_files": [
+          {
+            "name": "libcsv_3.0.3+dfsg.orig.tar.gz",
+            "sha256": "06fddfaca720a4be7603bad63eb1833bca5b6c5a69b42b1c518a02cda2a73aef"
+          },
+          {
+            "name": "libcsv_3.0.3+dfsg-6.debian.tar.xz",
+            "sha256": "5af11eef753b3bd3a2ce46515b593f8fba3316d51473ca113322daa3b8c83311"
+          }
+        ]
+      },
+      "build_system": "gnu-make",
+      "build_dependencies": [
+        "build-essential",
+        "libcsv-dev",
+        "make"
+      ],
+      "prepare_steps": [
+        "rm -rf target/downstream/build/libcsv-example-csvtest target/downstream/install/libcsv-example-csvtest",
+        "mkdir -p target/downstream/build/libcsv-example-csvtest target/downstream/install/libcsv-example-csvtest/usr/bin",
+        "cp -a target/downstream/sources/libcsv-example-csvtest/. target/downstream/build/libcsv-example-csvtest/"
+      ],
+      "build_steps": [
+        "(cd target/downstream/build/libcsv-example-csvtest/examples && make csvtest LDFLAGS='-lcsv')"
+      ],
+      "install_steps": [
+        "install -Dm0755 target/downstream/build/libcsv-example-csvtest/examples/csvtest target/downstream/install/libcsv-example-csvtest/usr/bin/csvtest"
+      ],
+      "runtime_probes": [
+        {
+          "id": "stdin-roundtrip",
+          "summary": "Pipe the shared fixture through csvtest and assert canonical CSV output.",
+          "setup_steps": [
+            "mkdir -p target/downstream/logs/libcsv-example-csvtest",
+            "cat > target/downstream/logs/libcsv-example-csvtest/fixture.csv <<'EOF'\nname,role,score,notes\n\"Alice, A.\",admin,42,\"likes;semicolons\"\nBob,user,7,\"plain text\"\nCara,user,99,\"multi word\"\nEOF"
+          ],
+          "run_steps": [
+            "target/downstream/install/libcsv-example-csvtest/usr/bin/csvtest < target/downstream/logs/libcsv-example-csvtest/fixture.csv > target/downstream/logs/libcsv-example-csvtest/csvtest.out"
+          ],
+          "assert_steps": [
+            "python3 - <<'PY'\nfrom pathlib import Path\nexpected = 'name,role,score,notes\\n\"Alice, A.\",admin,42,likes;semicolons\\nBob,user,7,plain text\\nCara,user,99,multi word\\n'\nactual = Path('target/downstream/logs/libcsv-example-csvtest/csvtest.out').read_text()\nassert actual == expected, actual\nPY"
+          ],
+          "expected_exit_code": 0
+        }
+      ],
+      "artifact_paths": {
+        "distfile": "target/downstream/distfiles/libcsv_3.0.3+dfsg-6.dsc",
+        "source_dir": "target/downstream/sources/libcsv-example-csvtest",
+        "build_dir": "target/downstream/build/libcsv-example-csvtest",
+        "install_root": "target/downstream/install/libcsv-example-csvtest",
+        "log_dir": "target/downstream/logs/libcsv-example-csvtest"
+      },
+      "libcsv_evidence": [
+        "examples/csvtest.c includes <csv.h>, feeds csv_parse one byte at a time, and re-emits parsed fields with csv_fwrite.",
+        "Byte-at-a-time parsing makes this the strongest small reference probe for quote-state and chunk-boundary regressions."
+      ],
+      "stress_profile": {
+        "seeded_from": [
+          "all_cves.json",
+          "relevant_cves.json"
+        ],
+        "non_cve_seed": "rgamble/libcsv#29",
+        "quote_heavy": true,
+        "large_record_candidate": true,
+        "notes": "Byte-sized parse chunks are especially sensitive to quote-state regressions."
+      }
+    },
+    {
+      "id": "libcsv-example-csvvalid",
+      "display_name": "csvvalid (libcsv example)",
+      "matrix_role": "reference-consumer",
+      "direct_ubuntu_dependent": false,
+      "source_group": "libcsv-examples",
+      "source": {
+        "kind": "dsc",
+        "locator": "http://archive.ubuntu.com/ubuntu/pool/universe/libc/libcsv/libcsv_3.0.3+dfsg-6.dsc",
+        "ref": "3.0.3+dfsg-6",
+        "checksum": "sha256:3e0a27ba29b9435d8bf7cbd825a1cdbec8375dedc8bffaf7ea458c15f238bc3f",
+        "supporting_files": [
+          {
+            "name": "libcsv_3.0.3+dfsg.orig.tar.gz",
+            "sha256": "06fddfaca720a4be7603bad63eb1833bca5b6c5a69b42b1c518a02cda2a73aef"
+          },
+          {
+            "name": "libcsv_3.0.3+dfsg-6.debian.tar.xz",
+            "sha256": "5af11eef753b3bd3a2ce46515b593f8fba3316d51473ca113322daa3b8c83311"
+          }
+        ]
+      },
+      "build_system": "gnu-make",
+      "build_dependencies": [
+        "build-essential",
+        "libcsv-dev",
+        "make"
+      ],
+      "prepare_steps": [
+        "rm -rf target/downstream/build/libcsv-example-csvvalid target/downstream/install/libcsv-example-csvvalid",
+        "mkdir -p target/downstream/build/libcsv-example-csvvalid target/downstream/install/libcsv-example-csvvalid/usr/bin",
+        "cp -a target/downstream/sources/libcsv-example-csvvalid/. target/downstream/build/libcsv-example-csvvalid/"
+      ],
+      "build_steps": [
+        "(cd target/downstream/build/libcsv-example-csvvalid/examples && make csvvalid LDFLAGS='-lcsv')"
+      ],
+      "install_steps": [
+        "install -Dm0755 target/downstream/build/libcsv-example-csvvalid/examples/csvvalid target/downstream/install/libcsv-example-csvvalid/usr/bin/csvvalid"
+      ],
+      "runtime_probes": [
+        {
+          "id": "strict-validation-failure",
+          "summary": "Run strict validation on a malformed quoted record and assert the failure report.",
+          "setup_steps": [
+            "mkdir -p target/downstream/logs/libcsv-example-csvvalid",
+            "cat > target/downstream/logs/libcsv-example-csvvalid/bad.csv <<'EOF'\nname,notes\nAlice,\"unterminated\nEOF"
+          ],
+          "run_steps": [
+            "target/downstream/install/libcsv-example-csvvalid/usr/bin/csvvalid target/downstream/logs/libcsv-example-csvvalid/bad.csv > target/downstream/logs/libcsv-example-csvvalid/csvvalid.out 2>&1"
+          ],
+          "assert_steps": [
+            "grep -q 'missing closing quote at end of input' target/downstream/logs/libcsv-example-csvvalid/csvvalid.out"
+          ],
+          "expected_exit_code": 0
+        }
+      ],
+      "artifact_paths": {
+        "distfile": "target/downstream/distfiles/libcsv_3.0.3+dfsg-6.dsc",
+        "source_dir": "target/downstream/sources/libcsv-example-csvvalid",
+        "build_dir": "target/downstream/build/libcsv-example-csvvalid",
+        "install_root": "target/downstream/install/libcsv-example-csvvalid",
+        "log_dir": "target/downstream/logs/libcsv-example-csvvalid"
+      },
+      "libcsv_evidence": [
+        "examples/csvvalid.c includes <csv.h>, initializes the parser with CSV_STRICT, and checks csv_error()/csv_strerror() on failure.",
+        "The example reports malformed input directly, which is useful for quote-regression triage."
+      ],
+      "stress_profile": {
+        "seeded_from": [
+          "all_cves.json",
+          "relevant_cves.json"
+        ],
+        "non_cve_seed": "rgamble/libcsv#29",
+        "quote_heavy": true,
+        "large_record_candidate": false,
+        "notes": "Purpose-built strict quote validator seeded from the known non-CVE quote-handling issue."
+      }
+    }
+  ]
+}
