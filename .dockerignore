@@ -1,0 +1,8 @@
+.git
+target
+!target/downstream
+target/downstream/*
+!target/downstream/install
+!target/downstream/install/**
+!target/downstream/image-build
+!target/downstream/image-build/**

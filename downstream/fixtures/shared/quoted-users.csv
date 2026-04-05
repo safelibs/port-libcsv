@@ -1,0 +1,4 @@
+name,role,score,notes
+"Alice, A.",admin,42,"likes;semicolons"
+Bob,user,7,"plain text"
+Cara,user,99,"multi word"

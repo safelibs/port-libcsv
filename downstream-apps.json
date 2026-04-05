@@ -65,12 +65,12 @@
   },
   "verifier_phases": [
     {
-      "id": "check_downstream_inventory_software",
-      "bounce_target": "impl_downstream_inventory"
+      "id": "check_downstream_matrix_smoke",
+      "bounce_target": "impl_downstream_matrix_harness"
     },
     {
-      "id": "check_downstream_inventory_senior",
-      "bounce_target": "impl_downstream_inventory"
+      "id": "check_downstream_matrix_senior",
+      "bounce_target": "impl_downstream_matrix_harness"
     }
   ],
   "dependents_mapping": {

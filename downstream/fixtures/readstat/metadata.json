@@ -1,0 +1,23 @@
+{
+  "type": "SPSS",
+  "separator": ";",
+  "variables": [
+    {
+      "name": "name",
+      "type": "STRING",
+      "label": "Name"
+    },
+    {
+      "name": "score",
+      "type": "NUMERIC",
+      "label": "Score",
+      "format": "NUMBER",
+      "decimals": 0
+    },
+    {
+      "name": "notes",
+      "type": "STRING",
+      "label": "Notes"
+    }
+  ]
+}
