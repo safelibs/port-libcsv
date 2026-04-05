@@ -580,6 +580,8 @@ def image_manifest_matches(
         return False
     if data.get("image_tag") != image_tag:
         return False
+    if data.get("package_version") != expected_libcsv_version():
+        return False
     manifest_ids = [entry["id"] for entry in data.get("applications", [])]
     if manifest_ids != [app.app_id for app in apps]:
         return False
