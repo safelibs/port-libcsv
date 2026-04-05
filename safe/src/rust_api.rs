@@ -1,10 +1,15 @@
 use alloc::{vec, vec::Vec};
-use std::io::{self, Write};
 
 use crate::{
     CSV_QUOTE,
-    engine::{BytePredicate, Error, ParserEngine, VecBuffer, quoted_bytes, write_size_with_quote},
+    engine::{BytePredicate, Error, ParserEngine, VecBuffer, write_size_with_quote},
 };
+
+#[cfg(not(panic = "abort"))]
+use crate::engine::quoted_bytes;
+
+#[cfg(not(panic = "abort"))]
+use std::io::{self, Write};
 
 #[derive(Clone, Debug)]
 pub struct Parser {
@@ -108,10 +113,12 @@ pub fn write_with_quote(src: &[u8], quote: u8) -> Vec<u8> {
     dest
 }
 
+#[cfg(not(panic = "abort"))]
 pub fn fwrite<W: Write>(writer: &mut W, src: &[u8]) -> io::Result<()> {
     fwrite_with_quote(writer, src, CSV_QUOTE)
 }
 
+#[cfg(not(panic = "abort"))]
 pub fn fwrite_with_quote<W: Write>(writer: &mut W, src: &[u8], quote: u8) -> io::Result<()> {
     for byte in quoted_bytes(src, quote) {
         writer.write_all(&[byte])?;

@@ -1,3 +1,6 @@
 [workspace]
 members = ["safe"]
 resolver = "3"
+
+[profile.release]
+panic = "abort"

@@ -1,0 +1,27 @@
+Base {
+    global:
+        csv_error;
+        csv_fini;
+        csv_free;
+        csv_fwrite2;
+        csv_fwrite;
+        csv_get_buffer_size;
+        csv_get_delim;
+        csv_get_opts;
+        csv_get_quote;
+        csv_init;
+        csv_parse;
+        csv_set_blk_size;
+        csv_set_delim;
+        csv_set_free_func;
+        csv_set_opts;
+        csv_set_quote;
+        csv_set_realloc_func;
+        csv_set_space_func;
+        csv_set_term_func;
+        csv_strerror;
+        csv_write2;
+        csv_write;
+    local:
+        *;
+};

@@ -6,3 +6,4 @@ edition = "2024"
 [lib]
 name = "csv"
 path = "src/lib.rs"
+crate-type = ["cdylib", "staticlib", "rlib"]
