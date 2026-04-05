@@ -1,0 +1,36 @@
+#!/usr/bin/make -f
+# -*- mode: makefile; coding: utf-8 -*-
+
+include /usr/share/dpkg/architecture.mk
+
+export CARGO_TARGET_DIR := $(CURDIR)/../target
+
+%:
+	dh $@
+
+override_dh_auto_configure:
+	:
+
+override_dh_auto_build:
+	cargo build --release --manifest-path $(CURDIR)/Cargo.toml --target-dir $(CARGO_TARGET_DIR)
+
+override_dh_auto_test:
+	:
+
+override_dh_auto_install:
+	install -d $(CURDIR)/debian/tmp/usr/lib/$(DEB_HOST_MULTIARCH)
+	install -m 0644 $(CURDIR)/../target/release/libcsv.a $(CURDIR)/debian/tmp/usr/lib/$(DEB_HOST_MULTIARCH)/libcsv.a
+	install -m 0755 $(CURDIR)/../target/release/libcsv.so $(CURDIR)/debian/tmp/usr/lib/$(DEB_HOST_MULTIARCH)/libcsv.so.3.0.2
+	ln -sf libcsv.so.3.0.2 $(CURDIR)/debian/tmp/usr/lib/$(DEB_HOST_MULTIARCH)/libcsv.so.3
+	ln -sf libcsv.so.3 $(CURDIR)/debian/tmp/usr/lib/$(DEB_HOST_MULTIARCH)/libcsv.so
+	install -d $(CURDIR)/debian/tmp/usr/include
+	install -m 0644 $(CURDIR)/../original/csv.h $(CURDIR)/debian/tmp/usr/include/csv.h
+	install -d $(CURDIR)/debian/tmp/usr/share/man/man3
+	install -m 0644 $(CURDIR)/../original/csv.3 $(CURDIR)/debian/tmp/usr/share/man/man3/csv.3
+	install -d $(CURDIR)/debian/libcsv-dev/usr/share/doc/libcsv-dev/examples
+	install -m 0644 $(CURDIR)/../original/FAQ $(CURDIR)/debian/libcsv-dev/usr/share/doc/libcsv-dev/FAQ
+	install -m 0644 $(CURDIR)/../original/examples/csvfix.c $(CURDIR)/debian/libcsv-dev/usr/share/doc/libcsv-dev/examples/csvfix.c
+	install -m 0644 $(CURDIR)/../original/examples/csvinfo.c $(CURDIR)/debian/libcsv-dev/usr/share/doc/libcsv-dev/examples/csvinfo.c
+	install -m 0644 $(CURDIR)/../original/examples/csvtest.c $(CURDIR)/debian/libcsv-dev/usr/share/doc/libcsv-dev/examples/csvtest.c
+	install -m 0644 $(CURDIR)/../original/examples/csvvalid.c $(CURDIR)/debian/libcsv-dev/usr/share/doc/libcsv-dev/examples/csvvalid.c
+	install -m 0644 $(CURDIR)/../original/examples/Makefile $(CURDIR)/debian/libcsv-dev/usr/share/doc/libcsv-dev/examples/Makefile

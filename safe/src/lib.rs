@@ -53,7 +53,7 @@ const MIN_ALIGN: usize = if cfg!(any(
 };
 
 #[cfg(panic = "abort")]
-unsafe extern "C" {
+extern "C" {
     fn abort() -> !;
     fn calloc(count: usize, size: usize) -> *mut c_void;
     fn free(ptr: *mut c_void);

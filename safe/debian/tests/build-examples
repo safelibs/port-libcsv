@@ -1,0 +1,13 @@
+#!/bin/bash
+set -euo pipefail
+set -x
+
+EXAMPLESDIR="/usr/share/doc/libcsv-dev/examples"
+cd "$AUTOPKGTEST_TMP"
+
+examples="$(find "$EXAMPLESDIR" -name '*.c' -printf '%f\n')"
+for example in ${examples}; do
+  name="$(basename "${example}" .c)"
+
+  gcc -o "${name}" "$EXAMPLESDIR/${example}" -lcsv
+done

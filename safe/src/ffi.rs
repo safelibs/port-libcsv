@@ -241,7 +241,7 @@ const STR_ENOMEM: &[u8] = b"memory exhausted while increasing buffer size\0";
 const STR_ETOOBIG: &[u8] = b"data size too large\0";
 const STR_EINVALID: &[u8] = b"invalid status code\0";
 
-unsafe extern "C" {
+extern "C" {
     fn abort() -> !;
     fn free(ptr: *mut c_void);
     fn fputc(ch: c_int, stream: *mut FILE) -> c_int;

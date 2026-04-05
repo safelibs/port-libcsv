@@ -11,8 +11,8 @@ usage: test-original.sh [--only <source-package>]
 
 Runs a Docker-based Ubuntu 24.04 compatibility matrix for the libcsv
 dependents recorded in dependents.json, building each dependent from source
-against the local original libcsv build and then exercising its documented
-runtime CSV functionality.
+against locally built libcsv Debian packages and then exercising its
+documented runtime CSV functionality.
 
 --only limits execution to one source package from dependents.json.
 EOF
@@ -46,6 +46,11 @@ command -v docker >/dev/null 2>&1 || {
   exit 1
 }
 
+[[ -d "$ROOT/safe" ]] || {
+  echo "missing safe source tree" >&2
+  exit 1
+}
+
 [[ -f "$ROOT/dependents.json" ]] || {
   echo "missing dependents.json" >&2
   exit 1
@@ -55,6 +60,7 @@ docker build -t "$IMAGE_TAG" - <<'DOCKERFILE'
 FROM ubuntu:24.04
 
 ENV DEBIAN_FRONTEND=noninteractive
+ENV PATH=/root/.cargo/bin:$PATH
 
 RUN sed -i 's/^Types: deb$/Types: deb deb-src/' /etc/apt/sources.list.d/ubuntu.sources \
  && apt-get update \
@@ -63,8 +69,11 @@ RUN sed -i 's/^Types: deb$/Types: deb deb-src/' /etc/apt/sources.list.d/ubuntu.s
       automake \
       build-essential \
       ca-certificates \
+      cargo \
       cmake \
+      curl \
       dbus-x11 \
+      debhelper \
       dpkg-dev \
       file \
       git \
@@ -72,8 +81,10 @@ RUN sed -i 's/^Types: deb$/Types: deb deb-src/' /etc/apt/sources.list.d/ubuntu.s
       ninja-build \
       pkg-config \
       python3 \
+      rustc \
       xauth \
       xvfb \
+ && curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y --profile minimal --default-toolchain stable \
  && rm -rf /var/lib/apt/lists/*
 DOCKERFILE
 
@@ -94,6 +105,11 @@ ROOT=/tmp/libcsv-work
 ONLY="${LIBCSV_TEST_ONLY:-}"
 APT_UPDATED=0
 CURRENT_STEP=""
+LIBCSV_VERSION="3.0.3+dfsg-6+safelibs1"
+DEB_MULTIARCH="$(dpkg-architecture -qDEB_HOST_MULTIARCH)"
+PACKAGED_RUNTIME_SO="/usr/lib/${DEB_MULTIARCH}/libcsv.so.3.0.2"
+LOCAL_LIBCSV3_DEB=""
+LOCAL_LIBCSV_DEV_DEB=""
 declare -A BUILD_DEPS_READY=()
 declare -A SOURCE_DIRS=()
 
@@ -113,16 +129,6 @@ run_logged() {
   shift
 
   if ! "$@" >"$log_file" 2>&1; then
-    cat "$log_file" >&2
-    return 1
-  fi
-}
-
-run_bash_logged() {
-  local log_file="$1"
-  local script="$2"
-
-  if ! bash -lc "$script" >"$log_file" 2>&1; then
     cat "$log_file" >&2
     return 1
   fi
@@ -194,6 +200,16 @@ install_build_deps() {
   BUILD_DEPS_READY[$pkg]=1
 }
 
+find_built_file() {
+  local root="$1"
+  local pattern="$2"
+  local match=""
+
+  match="$(find "$root" -type f -path "$pattern" | LC_ALL=C sort | head -n1 || true)"
+  [[ -n "$match" ]] || die "unable to locate built file matching $pattern under $root"
+  printf '%s\n' "$match"
+}
+
 fetch_source() {
   local pkg="$1"
   local src_root="/tmp/dependent-sources/$pkg"
@@ -231,17 +247,67 @@ prepare_writable_root() {
   cp -a "$READ_ONLY_ROOT/." "$ROOT/"
 }
 
-purge_archive_libcsv() {
-  log "Removing archive libcsv packages so downstream builds must use the local build"
+build_local_libcsv_packages() {
+  local build_dir="$ROOT/safe"
+
+  [[ -d "$build_dir" ]] || die "missing safe source tree in writable workspace"
+
+  log "Building local libcsv Debian packages"
+  find "$ROOT" -maxdepth 1 -type f \
+    \( -name 'libcsv3_*.deb' -o -name 'libcsv-dev_*.deb' -o -name 'libcsv_*.buildinfo' -o -name 'libcsv_*.changes' \) \
+    -delete
+
+  CURRENT_STEP="libcsv package build"
+  run_logged /tmp/libcsv-package-build.log \
+    bash -lc "cd '$build_dir' && dpkg-buildpackage -us -uc -b"
+
+  LOCAL_LIBCSV3_DEB="$(find "$ROOT" -maxdepth 1 -type f -name "libcsv3_${LIBCSV_VERSION}_*.deb" | LC_ALL=C sort | head -n1 || true)"
+  LOCAL_LIBCSV_DEV_DEB="$(find "$ROOT" -maxdepth 1 -type f -name "libcsv-dev_${LIBCSV_VERSION}_*.deb" | LC_ALL=C sort | head -n1 || true)"
+
+  [[ -n "$LOCAL_LIBCSV3_DEB" ]] || die "failed to locate built libcsv3 package"
+  [[ -n "$LOCAL_LIBCSV_DEV_DEB" ]] || die "failed to locate built libcsv-dev package"
+}
+
+install_local_libcsv_packages() {
+  local runtime_version=""
+  local dev_version=""
+  local runtime_link=""
+  local dev_link=""
+
+  [[ -n "$LOCAL_LIBCSV3_DEB" ]] || die "missing locally built libcsv3 package path"
+  [[ -n "$LOCAL_LIBCSV_DEV_DEB" ]] || die "missing locally built libcsv-dev package path"
+
+  log "Installing locally built libcsv packages"
+  apt_refresh
+
   CURRENT_STEP="purging archive libcsv packages"
   apt-get purge -y libcsv-dev libcsv3 >/tmp/libcsv-purge.log 2>&1 || {
     cat /tmp/libcsv-purge.log >&2
     return 1
   }
+
+  CURRENT_STEP="installing local libcsv packages"
+  apt-get install -y "$LOCAL_LIBCSV3_DEB" "$LOCAL_LIBCSV_DEV_DEB" >/tmp/libcsv-install.log 2>&1 || {
+    cat /tmp/libcsv-install.log >&2
+    return 1
+  }
   ldconfig
+
+  runtime_version="$(dpkg-query -W -f='${Version}' libcsv3)"
+  dev_version="$(dpkg-query -W -f='${Version}' libcsv-dev)"
+  [[ "$runtime_version" == "$LIBCSV_VERSION" ]] || die "unexpected libcsv3 version: $runtime_version"
+  [[ "$dev_version" == "$LIBCSV_VERSION" ]] || die "unexpected libcsv-dev version: $dev_version"
+
+  [[ -f /usr/include/csv.h ]] || die "packaged libcsv header was not installed"
+  [[ -f "$PACKAGED_RUNTIME_SO" ]] || die "packaged runtime library was not installed"
+
+  runtime_link="$(readlink -f "/usr/lib/${DEB_MULTIARCH}/libcsv.so.3")"
+  dev_link="$(readlink -f "/usr/lib/${DEB_MULTIARCH}/libcsv.so")"
+  [[ "$runtime_link" == "$PACKAGED_RUNTIME_SO" ]] || die "runtime symlink does not resolve to $PACKAGED_RUNTIME_SO"
+  [[ "$dev_link" == "$PACKAGED_RUNTIME_SO" ]] || die "development symlink does not resolve to $PACKAGED_RUNTIME_SO"
 }
 
-assert_links_to_local_libcsv() {
+assert_links_to_packaged_libcsv() {
   local target="$1"
   local label="$2"
   local runtime_path=""
@@ -257,41 +323,16 @@ assert_links_to_local_libcsv() {
   }
 
   resolved="$(readlink -f "$runtime_path")"
-  case "$resolved" in
-    /usr/local/lib/*)
-      ;;
-    *)
-      printf '%s resolved libcsv to %s instead of /usr/local/lib\n' "$label" "$resolved" >&2
-      ldd "$target" >&2 || true
-      return 1
-      ;;
-  esac
-}
-
-build_original_libcsv() {
-  local build_dir="$ROOT/original"
-
-  log "Building and installing original libcsv"
-  CURRENT_STEP="original libcsv configure"
-  (
-    cd "$build_dir"
-    make distclean >/dev/null 2>&1 || true
-  )
-  run_logged /tmp/libcsv-configure.log \
-    bash -lc "cd '$build_dir' && ./configure --prefix=/usr/local"
-  CURRENT_STEP="original libcsv build"
-  run_logged /tmp/libcsv-build.log \
-    bash -lc "cd '$build_dir' && make -j'$(nproc)'"
-  CURRENT_STEP="original libcsv install"
-  run_logged /tmp/libcsv-install.log \
-    bash -lc "cd '$build_dir' && make install"
-  ldconfig
-
-  [[ -f /usr/local/include/csv.h ]] || die "local libcsv header was not installed"
-  [[ -e /usr/local/lib/libcsv.so ]] || die "local libcsv shared library was not installed"
+  if [[ "$resolved" != "$PACKAGED_RUNTIME_SO" ]]; then
+    printf '%s resolved libcsv to %s instead of %s\n' "$label" "$resolved" "$PACKAGED_RUNTIME_SO" >&2
+    ldd "$target" >&2 || true
+    return 1
+  fi
 }
 
 run_readstat_smoke() {
+  local readstat_bin="$1"
+  local extract_metadata_bin="$2"
   local smoke_dir="/tmp/readstat-smoke"
 
   log "readstat: exercising CSV-plus-metadata runtime conversion"
@@ -332,7 +373,7 @@ EOF
 
   CURRENT_STEP="readstat runtime conversion"
   run_logged /tmp/readstat-convert.log \
-    /usr/local/bin/readstat \
+    "$readstat_bin" \
       "$smoke_dir/input.csv" \
       "$smoke_dir/metadata.json" \
       "$smoke_dir/output.dta"
@@ -342,13 +383,13 @@ EOF
 
   CURRENT_STEP="readstat metadata extraction"
   run_logged /tmp/readstat-extract.log \
-    /usr/local/bin/extract_metadata \
+    "$extract_metadata_bin" \
       "$smoke_dir/output.dta" \
       "$smoke_dir/extracted.json"
 
   CURRENT_STEP="readstat round-trip back to csv"
   run_logged /tmp/readstat-roundtrip.log \
-    /usr/local/bin/readstat \
+    "$readstat_bin" \
       "$smoke_dir/output.dta" \
       "$smoke_dir/roundtrip.csv"
 
@@ -379,13 +420,16 @@ PY
 build_and_test_readstat() {
   local src_dir=""
   local build_dir="/tmp/build-readstat"
+  local install_root="/tmp/readstat-install"
+  local readstat_bin=""
+  local extract_metadata_bin=""
 
   install_build_deps readstat
-  purge_archive_libcsv
+  install_local_libcsv_packages
   src_dir="$(fetch_source readstat)"
 
-  log "readstat: building against local libcsv"
-  rm -rf "$build_dir"
+  log "readstat: building against local libcsv packages"
+  rm -rf "$build_dir" "$install_root"
   cp -a "$src_dir/." "$build_dir/"
 
   if [[ ! -x "$build_dir/configure" ]]; then
@@ -396,7 +440,7 @@ build_and_test_readstat() {
 
   CURRENT_STEP="readstat configure"
   run_logged /tmp/readstat-configure.log \
-    bash -lc "cd '$build_dir' && ./configure --prefix=/usr/local CPPFLAGS='-I/usr/local/include' LDFLAGS='-L/usr/local/lib -Wl,-rpath,/usr/local/lib'"
+    bash -lc "cd '$build_dir' && ./configure --prefix=/usr"
 
   CURRENT_STEP="readstat build"
   run_logged /tmp/readstat-build.log \
@@ -404,23 +448,15 @@ build_and_test_readstat() {
 
   CURRENT_STEP="readstat install"
   run_logged /tmp/readstat-install.log \
-    bash -lc "cd '$build_dir' && make install"
-  ldconfig
+    bash -lc "cd '$build_dir' && make install DESTDIR='$install_root'"
 
-  [[ -x /usr/local/bin/readstat ]] || die "readstat was not installed"
-  [[ -x /usr/local/bin/extract_metadata ]] || die "extract_metadata was not installed"
-  assert_links_to_local_libcsv /usr/local/bin/readstat readstat
-  run_readstat_smoke
-}
+  readstat_bin="$install_root/usr/bin/readstat"
+  extract_metadata_bin="$install_root/usr/bin/extract_metadata"
 
-find_built_file() {
-  local root="$1"
-  local pattern="$2"
-  local match=""
-
-  match="$(find "$root" -type f -path "$pattern" | LC_ALL=C sort | head -n1 || true)"
-  [[ -n "$match" ]] || die "unable to locate built file matching $pattern under $root"
-  printf '%s\n' "$match"
+  [[ -x "$readstat_bin" ]] || die "readstat was not installed into $install_root"
+  [[ -x "$extract_metadata_bin" ]] || die "extract_metadata was not installed into $install_root"
+  assert_links_to_packaged_libcsv "$readstat_bin" readstat
+  run_readstat_smoke "$readstat_bin" "$extract_metadata_bin"
 }
 
 build_and_test_tellico() {
@@ -430,10 +466,10 @@ build_and_test_tellico() {
   local csvtest_bin=""
 
   install_build_deps tellico
-  purge_archive_libcsv
+  install_local_libcsv_packages
   src_dir="$(fetch_source tellico)"
 
-  log "tellico: configuring against local libcsv"
+  log "tellico: configuring against local libcsv packages"
   rm -rf "$build_dir"
   CURRENT_STEP="tellico configure"
   run_logged /tmp/tellico-configure.log \
@@ -444,10 +480,7 @@ build_and_test_tellico() {
       -DBUILD_TESTING=ON \
       -DBUILD_FETCHER_TESTS=OFF \
       -DUSE_KHTML=ON \
-      -DCMAKE_BUILD_TYPE=RelWithDebInfo \
-      -DCMAKE_PREFIX_PATH=/usr/local \
-      -DCMAKE_INCLUDE_PATH=/usr/local/include \
-      -DCMAKE_LIBRARY_PATH=/usr/local/lib
+      -DCMAKE_BUILD_TYPE=RelWithDebInfo
 
   CURRENT_STEP="tellico build"
   run_logged /tmp/tellico-build.log \
@@ -456,8 +489,8 @@ build_and_test_tellico() {
   tellico_bin="$(find_built_file "$build_dir" '*/src/tellico')"
   csvtest_bin="$(find_built_file "$build_dir" '*/src/tests/csvtest')"
 
-  assert_links_to_local_libcsv "$tellico_bin" tellico
-  assert_links_to_local_libcsv "$csvtest_bin" tellico-csvtest
+  assert_links_to_packaged_libcsv "$tellico_bin" tellico
+  assert_links_to_packaged_libcsv "$csvtest_bin" tellico-csvtest
 
   log "tellico: running upstream csvtest"
   CURRENT_STEP="tellico csvtest"
@@ -468,7 +501,7 @@ build_and_test_tellico() {
 prepare_writable_root
 assert_dependents_inventory
 assert_only_filter
-build_original_libcsv
+build_local_libcsv_packages
 
 if should_run readstat; then
   build_and_test_readstat
