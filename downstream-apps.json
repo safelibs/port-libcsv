@@ -65,12 +65,12 @@
   },
   "verifier_phases": [
     {
-      "id": "check_wave2_software_tester",
-      "bounce_target": "impl_wave2_integration_fixes"
+      "id": "check_final_software_tester",
+      "bounce_target": "impl_final_catchall"
     },
     {
-      "id": "check_wave2_senior_tester",
-      "bounce_target": "impl_wave2_integration_fixes"
+      "id": "check_final_senior_tester",
+      "bounce_target": "impl_final_catchall"
     }
   ],
   "dependents_mapping": {

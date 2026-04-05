@@ -128,14 +128,16 @@ fn csvcheck_fixture_requires_strict_finish_for_unterminated_quotes() {
 }
 
 #[test]
-fn downstream_inventory_pins_wave2_verifier_topology() {
+fn downstream_inventory_pins_final_verifier_topology() {
     let workspace_root = workspace_root();
     let inventory_path = workspace_root.join("downstream-apps.json");
     let inventory = fs::read_to_string(&inventory_path).unwrap();
 
-    assert!(inventory.contains("\"id\": \"check_wave2_software_tester\""));
-    assert!(inventory.contains("\"id\": \"check_wave2_senior_tester\""));
-    assert!(inventory.contains("\"bounce_target\": \"impl_wave2_integration_fixes\""));
+    assert!(inventory.contains("\"id\": \"check_final_software_tester\""));
+    assert!(inventory.contains("\"id\": \"check_final_senior_tester\""));
+    assert!(inventory.contains("\"bounce_target\": \"impl_final_catchall\""));
+    assert!(!inventory.contains("check_wave2_software_tester"));
+    assert!(!inventory.contains("impl_wave2_integration_fixes"));
     assert!(!inventory.contains("check_wave1_software_tester"));
     assert!(!inventory.contains("impl_wave1_compat_fixes"));
 

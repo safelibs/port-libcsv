@@ -21,10 +21,10 @@ ROOT = Path(__file__).resolve().parents[1]
 DEFAULT_INVENTORY = ROOT / "downstream-apps.json"
 DEFAULT_IMAGE_MANIFEST = ROOT / "target/downstream/image-manifest.json"
 DEFAULT_IMAGE_TAG = "libcsv-downstream:dev"
-DEFAULT_REPORT = ROOT / "target/downstream/smoke-results.json"
+DEFAULT_REPORT = ROOT / "target/downstream/final-results.json"
 EXPECTED_VERIFIER_PHASES = [
-    {"id": "check_wave2_software_tester", "bounce_target": "impl_wave2_integration_fixes"},
-    {"id": "check_wave2_senior_tester", "bounce_target": "impl_wave2_integration_fixes"},
+    {"id": "check_final_software_tester", "bounce_target": "impl_final_catchall"},
+    {"id": "check_final_senior_tester", "bounce_target": "impl_final_catchall"},
 ]
 
 

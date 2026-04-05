@@ -6,7 +6,7 @@ IMAGE_TAG="${LIBCSV_DOWNSTREAM_IMAGE:-libcsv-downstream:dev}"
 INVENTORY="$ROOT/downstream-apps.json"
 IMAGE_MANIFEST="$ROOT/target/downstream/image-manifest.json"
 ONLY=""
-REPORT="$ROOT/target/downstream/smoke-results.json"
+REPORT="$ROOT/target/downstream/final-results.json"
 KEEP_GOING=0
 
 usage() {
