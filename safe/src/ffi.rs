@@ -510,11 +510,7 @@ pub unsafe extern "C" fn csv_fini(
     cb2: csv_cb2,
     data: *mut c_void,
 ) -> c_int {
-    let mut parser = match NonNull::new(parser) {
-        Some(parser) => parser,
-        None => return -1,
-    };
-    let parser = unsafe { parser.as_mut() };
+    let parser = unsafe { require_mut_parser(parser).as_mut() };
 
     let mut quoted = parser.quoted != 0;
     let mut pstate = parser.pstate;

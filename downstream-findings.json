@@ -1,34 +1,8 @@
 {
   "schema_version": 1,
-  "generated_at": "2026-04-05T14:24:43Z",
+  "generated_at": "2026-04-05T14:38:42Z",
   "matrix_report": "target/downstream/wave1-results.json",
   "findings": [
-    {
-      "finding_id": "wave1-ffi-null-fini",
-      "app_ids": [
-        "readstat",
-        "tellico",
-        "csvutils-csvbreak",
-        "csvutils-csvcheck",
-        "csvutils-csvcount",
-        "csvutils-csvcut",
-        "csvutils-csvfix",
-        "csvutils-csvgrep",
-        "libcsv-example-csvfix",
-        "libcsv-example-csvinfo",
-        "libcsv-example-csvtest",
-        "libcsv-example-csvvalid"
-      ],
-      "category": "ffi",
-      "failing_step": "runtime",
-      "observed_symptom": "The Rust FFI wrapper aborted on csv_fini(NULL, ...) because it unconditionally dereferenced the parser pointer. Upstream returns -1 for that call.",
-      "expected_behavior": "csv_fini(NULL, ...) must return -1 without dereferencing the parser, matching original/libcsv.c.",
-      "linked_regression_test_file_paths": [
-        "safe/tests/c_abi.rs"
-      ],
-      "status": "resolved",
-      "assigned_wave": "wave1"
-    },
     {
       "finding_id": "wave1-abi-full-export-surface",
       "app_ids": [

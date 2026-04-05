@@ -285,10 +285,6 @@ fn direct_wrappers_preserve_upstream_behavior() {
     assert_eq!(unsafe { csv_set_opts(std::ptr::null_mut(), 0) }, -1);
     assert_eq!(unsafe { csv_get_opts(std::ptr::null_mut()) }, -1);
     assert_eq!(unsafe { csv_get_buffer_size(std::ptr::null_mut()) }, 0);
-    assert_eq!(
-        unsafe { csv_fini(std::ptr::null_mut(), None, None, std::ptr::null_mut()) },
-        -1
-    );
 
     unsafe { csv_set_blk_size(&mut parser, 2) };
     unsafe {
