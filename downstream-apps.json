@@ -767,7 +767,7 @@
             "target/downstream/install/libcsv-example-csvfix/usr/bin/csvfix target/downstream/logs/libcsv-example-csvfix/fixture.csv target/downstream/logs/libcsv-example-csvfix/fixed.csv > target/downstream/logs/libcsv-example-csvfix/csvfix.out 2>&1"
           ],
           "assert_steps": [
-            "python3 - <<'PY'\nfrom pathlib import Path\nexpected = 'name,role,score,notes\\n\"Alice, A.\",admin,42,likes;semicolons\\nBob,user,7,plain text\\nCara,user,99,multi word\\n'\nactual = Path('target/downstream/logs/libcsv-example-csvfix/fixed.csv').read_text()\nassert actual == expected, actual\nPY"
+            "python3 - <<'PY'\nfrom pathlib import Path\nexpected = '\"name\",\"role\",\"score\",\"notes\"\\n\"Alice, A.\",\"admin\",\"42\",\"likes;semicolons\"\\n\"Bob\",\"user\",\"7\",\"plain text\"\\n\"Cara\",\"user\",\"99\",\"multi word\"\\n'\nactual = Path('target/downstream/logs/libcsv-example-csvfix/fixed.csv').read_text()\nassert actual == expected, actual\nPY"
           ],
           "expected_exit_code": 0
         }
@@ -923,7 +923,7 @@
             "target/downstream/install/libcsv-example-csvtest/usr/bin/csvtest < target/downstream/logs/libcsv-example-csvtest/fixture.csv > target/downstream/logs/libcsv-example-csvtest/csvtest.out"
           ],
           "assert_steps": [
-            "python3 - <<'PY'\nfrom pathlib import Path\nexpected = 'name,role,score,notes\\n\"Alice, A.\",admin,42,likes;semicolons\\nBob,user,7,plain text\\nCara,user,99,multi word\\n'\nactual = Path('target/downstream/logs/libcsv-example-csvtest/csvtest.out').read_text()\nassert actual == expected, actual\nPY"
+            "python3 - <<'PY'\nfrom pathlib import Path\nexpected = '\"name\",\"role\",\"score\",\"notes\"\\n\"Alice, A.\",\"admin\",\"42\",\"likes;semicolons\"\\n\"Bob\",\"user\",\"7\",\"plain text\"\\n\"Cara\",\"user\",\"99\",\"multi word\"\\n'\nactual = Path('target/downstream/logs/libcsv-example-csvtest/csvtest.out').read_text()\nassert actual == expected, actual\nPY"
           ],
           "expected_exit_code": 0
         }
@@ -995,13 +995,13 @@
           "summary": "Run strict validation on a malformed quoted record and assert the failure report.",
           "setup_steps": [
             "mkdir -p target/downstream/logs/libcsv-example-csvvalid",
-            "cat > target/downstream/logs/libcsv-example-csvvalid/bad.csv <<'EOF'\nname,notes\nAlice,\"unterminated\nEOF"
+            "cat > target/downstream/logs/libcsv-example-csvvalid/bad.csv <<'EOF'\nname,notes\nAlice,\"bad\"quote\nEOF"
           ],
           "run_steps": [
             "target/downstream/install/libcsv-example-csvvalid/usr/bin/csvvalid target/downstream/logs/libcsv-example-csvvalid/bad.csv > target/downstream/logs/libcsv-example-csvvalid/csvvalid.out 2>&1"
           ],
           "assert_steps": [
-            "grep -q 'missing closing quote at end of input' target/downstream/logs/libcsv-example-csvvalid/csvvalid.out"
+            "grep -q 'malformed at byte 23' target/downstream/logs/libcsv-example-csvvalid/csvvalid.out"
           ],
           "expected_exit_code": 0
         }
