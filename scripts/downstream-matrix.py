@@ -23,8 +23,8 @@ DEFAULT_IMAGE_MANIFEST = ROOT / "target/downstream/image-manifest.json"
 DEFAULT_IMAGE_TAG = "libcsv-downstream:dev"
 DEFAULT_REPORT = ROOT / "target/downstream/smoke-results.json"
 EXPECTED_VERIFIER_PHASES = [
-    {"id": "check_wave1_software_tester", "bounce_target": "impl_wave1_compat_fixes"},
-    {"id": "check_wave1_senior_tester", "bounce_target": "impl_wave1_compat_fixes"},
+    {"id": "check_wave2_software_tester", "bounce_target": "impl_wave2_integration_fixes"},
+    {"id": "check_wave2_senior_tester", "bounce_target": "impl_wave2_integration_fixes"},
 ]
 
 

@@ -1,4 +1,4 @@
-use std::{cell::RefCell, fs, path::PathBuf};
+use std::{cell::RefCell, fs, path::PathBuf, process::Command};
 
 use csv::{Error, Parser, CSV_STRICT, CSV_STRICT_FINI};
 
@@ -124,5 +124,34 @@ fn csvcheck_fixture_requires_strict_finish_for_unterminated_quotes() {
             row(i32::from(b'\n')),
             field(b"Alice"),
         ]
+    );
+}
+
+#[test]
+fn downstream_inventory_pins_wave2_verifier_topology() {
+    let workspace_root = workspace_root();
+    let inventory_path = workspace_root.join("downstream-apps.json");
+    let inventory = fs::read_to_string(&inventory_path).unwrap();
+
+    assert!(inventory.contains("\"id\": \"check_wave2_software_tester\""));
+    assert!(inventory.contains("\"id\": \"check_wave2_senior_tester\""));
+    assert!(inventory.contains("\"bounce_target\": \"impl_wave2_integration_fixes\""));
+    assert!(!inventory.contains("check_wave1_software_tester"));
+    assert!(!inventory.contains("impl_wave1_compat_fixes"));
+
+    let output = Command::new("python3")
+        .arg(workspace_root.join("scripts/downstream-matrix.py"))
+        .arg("validate")
+        .arg("--inventory")
+        .arg(&inventory_path)
+        .current_dir(&workspace_root)
+        .output()
+        .unwrap();
+
+    assert!(
+        output.status.success(),
+        "validator failed\nstdout:\n{}\nstderr:\n{}",
+        String::from_utf8_lossy(&output.stdout),
+        String::from_utf8_lossy(&output.stderr),
     );
 }
