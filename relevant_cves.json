@@ -1,0 +1,34 @@
+{
+  "generated_at": "2026-04-04T22:16:34-07:00",
+  "source_file": "/home/yans/code/safelibs/ported/libcsv/all_cves.json",
+  "package": {
+    "name": "libcsv",
+    "debian_source_version": "3.0.3+dfsg-6",
+    "upstream_repository": "https://github.com/rgamble/libcsv"
+  },
+  "analysis_scope": {
+    "included": "Published CVEs recorded in all_cves.json",
+    "target_subset": "Non-memory-corruption issues that could still affect a Rust reimplementation",
+    "excluded": "Non-CVE reports are kept as notes but are not treated as CVEs"
+  },
+  "summary": {
+    "published_cves_analyzed": 0,
+    "relevant_non_memory_corruption_cves": 0,
+    "result": "No published CVEs were present in all_cves.json, so there are no known non-memory-corruption CVEs to carry forward into the Rust port."
+  },
+  "relevant_cves": [],
+  "non_cve_notes": [
+    {
+      "source": "GitHub issue",
+      "id": "rgamble/libcsv#29",
+      "url": "https://github.com/rgamble/libcsv/issues/29",
+      "title": "How to disable quote processing entirely?",
+      "port_relevance": "The report describes quote-handling behavior that can yield an extremely large output record, which suggests a possible parser logic or resource-exhaustion concern if the Rust port reproduces the same semantics.",
+      "why_not_listed_in_relevant_cves": "It is not a published CVE."
+    }
+  ],
+  "conclusion": {
+    "applicable_cves": [],
+    "statement": "Based on the analyzed dataset, there are no published non-memory-corruption CVEs affecting libcsv that need to be preserved as known vulnerabilities in the Rust reimplementation."
+  }
+}
