@@ -2,7 +2,7 @@ use std::cell::RefCell;
 
 use libcsv::{
     CSV_COMMA, CSV_EMPTY_IS_NULL, CSV_QUOTE, CSV_REPALL_NL, CSV_SPACE, CSV_STRICT, CSV_STRICT_FINI,
-    CSV_TAB, END_OF_INPUT, Error, Parser, write, write_with_quote,
+    CSV_TAB, END_OF_INPUT, Error, Parser, write_to_buffer, write_to_buffer_with_quote,
 };
 
 // The original C test suite in `original/test_csv.c` asserts only on public
@@ -691,13 +691,28 @@ fn translated_original_parser_cases() {
 
 #[test]
 fn translated_original_writer_cases() {
-    assert_eq!(write(b"abc"), b"\"abc\"");
+    let mut buffer = vec![0; b"abc".len() * 2 + 2];
+    let actual_len = write_to_buffer(&mut buffer, b"abc");
+    assert_eq!(actual_len, 5);
+    assert_eq!(&buffer[..actual_len], b"\"abc\"");
+
+    let mut buffer = vec![0; b"\"\"\"\"\"\"\"\"".len() * 2 + 2];
+    let actual_len = write_to_buffer(&mut buffer, b"\"\"\"\"\"\"\"\"");
+    assert_eq!(actual_len, 18);
     assert_eq!(
-        write(b"\"\"\"\"\"\"\"\""),
+        &buffer[..actual_len],
         b"\"\"\"\"\"\"\"\"\"\"\"\"\"\"\"\"\"\""
     );
-    assert_eq!(write_with_quote(b"abc", b'\''), b"'abc'");
-    assert_eq!(write_with_quote(b"''''''''", b'\''), b"''''''''''''''''''");
+
+    let mut buffer = vec![0; b"abc".len() * 2 + 2];
+    let actual_len = write_to_buffer_with_quote(&mut buffer, b"abc", b'\'');
+    assert_eq!(actual_len, 5);
+    assert_eq!(&buffer[..actual_len], b"'abc'");
+
+    let mut buffer = vec![0; b"''''''''".len() * 2 + 2];
+    let actual_len = write_to_buffer_with_quote(&mut buffer, b"''''''''", b'\'');
+    assert_eq!(actual_len, 18);
+    assert_eq!(&buffer[..actual_len], b"''''''''''''''''''");
 }
 
 #[test]
