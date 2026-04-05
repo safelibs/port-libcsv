@@ -307,25 +307,63 @@ install_local_libcsv_packages() {
   [[ "$dev_link" == "$PACKAGED_RUNTIME_SO" ]] || die "development symlink does not resolve to $PACKAGED_RUNTIME_SO"
 }
 
+build_ld_library_path() {
+  local extra_path="${1:-}"
+
+  if [[ -n "$extra_path" && -n "${LD_LIBRARY_PATH:-}" ]]; then
+    printf '%s:%s\n' "$extra_path" "$LD_LIBRARY_PATH"
+  elif [[ -n "$extra_path" ]]; then
+    printf '%s\n' "$extra_path"
+  elif [[ -n "${LD_LIBRARY_PATH:-}" ]]; then
+    printf '%s\n' "$LD_LIBRARY_PATH"
+  else
+    printf '\n'
+  fi
+}
+
+install_root_library_path() {
+  local install_root="$1"
+  local candidate=""
+  local path=""
+
+  for candidate in \
+    "$install_root/usr/lib/$DEB_MULTIARCH" \
+    "$install_root/usr/lib"
+  do
+    if [[ -d "$candidate" ]]; then
+      if [[ -n "$path" ]]; then
+        path+=":$candidate"
+      else
+        path="$candidate"
+      fi
+    fi
+  done
+
+  printf '%s\n' "$path"
+}
+
 assert_links_to_packaged_libcsv() {
   local target="$1"
   local label="$2"
+  local extra_ld_library_path="${3:-}"
   local runtime_path=""
   local resolved=""
+  local ld_library_path=""
 
   [[ -e "$target" ]] || die "missing binary to inspect: $target"
 
-  runtime_path="$(ldd "$target" 2>/dev/null | awk '$1 == "libcsv.so.3" || $1 == "libcsv.so" { print $3; exit }')"
+  ld_library_path="$(build_ld_library_path "$extra_ld_library_path")"
+  runtime_path="$(env LD_LIBRARY_PATH="$ld_library_path" ldd "$target" 2>/dev/null | awk '$1 == "libcsv.so.3" || $1 == "libcsv.so" { print $3; exit }')"
   [[ -n "$runtime_path" ]] || {
     echo "$label does not resolve libcsv at runtime" >&2
-    ldd "$target" >&2 || true
+    env LD_LIBRARY_PATH="$ld_library_path" ldd "$target" >&2 || true
     return 1
   }
 
   resolved="$(readlink -f "$runtime_path")"
   if [[ "$resolved" != "$PACKAGED_RUNTIME_SO" ]]; then
     printf '%s resolved libcsv to %s instead of %s\n' "$label" "$resolved" "$PACKAGED_RUNTIME_SO" >&2
-    ldd "$target" >&2 || true
+    env LD_LIBRARY_PATH="$ld_library_path" ldd "$target" >&2 || true
     return 1
   fi
 }
@@ -333,7 +371,9 @@ assert_links_to_packaged_libcsv() {
 run_readstat_smoke() {
   local readstat_bin="$1"
   local extract_metadata_bin="$2"
+  local extra_ld_library_path="$3"
   local smoke_dir="/tmp/readstat-smoke"
+  local ld_library_path=""
 
   log "readstat: exercising CSV-plus-metadata runtime conversion"
   rm -rf "$smoke_dir"
@@ -371,9 +411,12 @@ EOF
 }
 EOF
 
+  ld_library_path="$(build_ld_library_path "$extra_ld_library_path")"
+
   CURRENT_STEP="readstat runtime conversion"
   run_logged /tmp/readstat-convert.log \
-    "$readstat_bin" \
+    env LD_LIBRARY_PATH="$ld_library_path" \
+      "$readstat_bin" \
       "$smoke_dir/input.csv" \
       "$smoke_dir/metadata.json" \
       "$smoke_dir/output.dta"
@@ -383,13 +426,15 @@ EOF
 
   CURRENT_STEP="readstat metadata extraction"
   run_logged /tmp/readstat-extract.log \
-    "$extract_metadata_bin" \
+    env LD_LIBRARY_PATH="$ld_library_path" \
+      "$extract_metadata_bin" \
       "$smoke_dir/output.dta" \
       "$smoke_dir/extracted.json"
 
   CURRENT_STEP="readstat round-trip back to csv"
   run_logged /tmp/readstat-roundtrip.log \
-    "$readstat_bin" \
+    env LD_LIBRARY_PATH="$ld_library_path" \
+      "$readstat_bin" \
       "$smoke_dir/output.dta" \
       "$smoke_dir/roundtrip.csv"
 
@@ -421,6 +466,7 @@ build_and_test_readstat() {
   local src_dir=""
   local build_dir="/tmp/build-readstat"
   local install_root="/tmp/readstat-install"
+  local install_lib_path=""
   local readstat_bin=""
   local extract_metadata_bin=""
 
@@ -452,11 +498,12 @@ build_and_test_readstat() {
 
   readstat_bin="$install_root/usr/bin/readstat"
   extract_metadata_bin="$install_root/usr/bin/extract_metadata"
+  install_lib_path="$(install_root_library_path "$install_root")"
 
   [[ -x "$readstat_bin" ]] || die "readstat was not installed into $install_root"
   [[ -x "$extract_metadata_bin" ]] || die "extract_metadata was not installed into $install_root"
-  assert_links_to_packaged_libcsv "$readstat_bin" readstat
-  run_readstat_smoke "$readstat_bin" "$extract_metadata_bin"
+  assert_links_to_packaged_libcsv "$readstat_bin" readstat "$install_lib_path"
+  run_readstat_smoke "$readstat_bin" "$extract_metadata_bin" "$install_lib_path"
 }
 
 build_and_test_tellico() {
