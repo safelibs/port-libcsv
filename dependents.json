@@ -1,0 +1,74 @@
+{
+  "schema_version": 1,
+  "generated_on": "2026-04-04",
+  "ubuntu_release": "24.04 LTS (noble)",
+  "library": "libcsv",
+  "metadata_source": "Ubuntu 24.04 apt Packages/Sources indexes under /var/lib/apt/lists, plus source inspection of the extracted noble readstat and tellico source packages",
+  "selection_policy": "Direct Ubuntu noble dependents only. Scanning the configured Ubuntu 24.04 Packages and Sources indexes found exactly two source packages that Build-Depend on libcsv-dev and exactly two runtime binary packages that Depend on libcsv3, so this list is effectively complete rather than a sample.",
+  "direct_dependency_summary": {
+    "source_packages_building_against_libcsv_dev": [
+      "readstat",
+      "tellico"
+    ],
+    "binary_packages_with_runtime_dependency_on_libcsv3": [
+      "readstat",
+      "tellico"
+    ]
+  },
+  "dependents": [
+    {
+      "name": "readstat",
+      "source_package": "readstat",
+      "category": "statistics data conversion utility",
+      "dependency_kind": "build-and-runtime",
+      "runtime_dependency_type": "direct",
+      "package_dependencies": [
+        {
+          "package": "readstat (source)",
+          "usage": "compile-time",
+          "libcsv_dependency": "libcsv-dev"
+        },
+        {
+          "package": "readstat",
+          "usage": "runtime",
+          "libcsv_dependency": "libcsv3"
+        }
+      ],
+      "runtime_functionality": "Libcsv is used by the readstat command-line tools only for CSV-input conversion: parsing an input .csv together with a metadata.json description and converting that data into ReadStat-supported outputs such as .dta or .sav. Ubuntu's shared libreadstat library package does not itself link against libcsv.",
+      "evidence": [
+        "Ubuntu noble source metadata shows readstat Build-Depends on libcsv-dev, and the readstat binary package Depends on libcsv3.",
+        "readstat's configure.ac checks for csv_parse in -lcsv and enables the HAVE_CSVREADER build conditional when libcsv is present.",
+        "readstat's Makefile.am links -lcsv only into the readstat executable when HAVE_CSVREADER is enabled; libreadstat.la itself is built without libcsv.",
+        "readstat's README documents that CSV input requires libcsv at compile time and supports `readstat input.csv metadata.json output.(dta|sav|csv...)`.",
+        "The CSV-input implementation lives in src/bin/read_csv/read_csv.c and is reached from parse_csv_plus_json() in src/bin/readstat.c."
+      ]
+    },
+    {
+      "name": "Tellico",
+      "source_package": "tellico",
+      "category": "desktop collection manager",
+      "dependency_kind": "build-and-runtime",
+      "runtime_dependency_type": "direct",
+      "package_dependencies": [
+        {
+          "package": "tellico (source)",
+          "usage": "compile-time",
+          "libcsv_dependency": "libcsv-dev"
+        },
+        {
+          "package": "tellico",
+          "usage": "runtime",
+          "libcsv_dependency": "libcsv3"
+        }
+      ],
+      "runtime_functionality": "Tellico uses libcsv for CSV import parsing and preview in the GUI: tokenizing rows, handling alternate delimiters, mapping CSV columns to collection fields, and importing LibraryThing-style CSV exports. Its CSV export path is separate and does not call libcsv.",
+      "evidence": [
+        "Ubuntu noble source metadata shows tellico Build-Depends on libcsv-dev, and the tellico binary package Depends on libcsv3.",
+        "Tellico's top-level CMakeLists.txt calls find_package(Csv 3.0) and describes it as external support for reading CSV files; FindCsv.cmake searches for csv.h and the csv library.",
+        "src/translators/csvparser.cpp includes csv.h when HAVE_LIBCSV is defined and uses csv_init, csv_set_delim, csv_parse, csv_fini, and csv_free to parse imported rows.",
+        "src/translators/csvimporter.cpp uses CSVParser to preview CSV content, detect delimiters, map columns to fields, and handle a LibraryThing-specific CSV header format.",
+        "The tellico package description advertises import and export of CSV files, but only the import parser is wired to libcsv in the inspected source."
+      ]
+    }
+  ]
+}
