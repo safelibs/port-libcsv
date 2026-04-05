@@ -231,6 +231,10 @@ downstream::run_readstat_probe() {
   local ld_library_path=""
 
   mkdir -p "$work_dir"
+  rm -f \
+    "$work_dir/output.dta" \
+    "$work_dir/extracted.json" \
+    "$work_dir/roundtrip.csv"
   downstream::copy_fixture "readstat/input.csv" "$work_dir/input.csv"
   downstream::copy_fixture "readstat/metadata.json" "$work_dir/metadata.json"
 

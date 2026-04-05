@@ -605,6 +605,7 @@ def ensure_prepared_image(
 
 def run_probe(image_tag: str, app: App) -> tuple[int, Path]:
     target_root = ROOT / "target" / "downstream"
+    downstream_root = ROOT / "downstream"
     target_root.mkdir(parents=True, exist_ok=True)
     app.log_dir.mkdir(parents=True, exist_ok=True)
     driver_log = app.log_dir / "probe-driver.log"
@@ -629,6 +630,8 @@ def run_probe(image_tag: str, app: App) -> tuple[int, Path]:
         "DOWNSTREAM_IMAGE_ROOT_BASE=/opt/downstream/apps",
         "-v",
         f"{target_root}:/mnt/downstream-target",
+        "-v",
+        f"{downstream_root}:/opt/downstream/harness/downstream:ro",
         image_tag,
         "bash",
         "-lc",
