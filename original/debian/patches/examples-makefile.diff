@@ -1,0 +1,17 @@
+Author: W. Martin Borgert <debacle@debian.org>
+Description: Provide a simple Makefile for the examples.
+Bug-Debian: https://bugs.debian.org/802667
+Forwarded: no
+Last-Update: 2015-11-28
+
+--- /dev/null
++++ b/examples/Makefile
+@@ -0,0 +1,8 @@
++LDFLAGS = -lcsv
++
++EXAMPLES = csvfix csvinfo csvtest csvvalid
++
++all: $(EXAMPLES)
++
++clean:
++	rm -f $(EXAMPLES) *~

@@ -1,0 +1,2 @@
+# test data for long lines
+libcsv source: very-long-line-length-in-source-file 2015 > 512 [tests/test_08.csv:1]

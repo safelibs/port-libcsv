@@ -1,0 +1,5 @@
+upstream_Update-include-for-csv.h-in-examples.patch
+upstream_Fix-csv.h-include-in-documentation-and-examples.patch
+upstream_Fix-various-typos.patch
+examples-makefile.diff
+debian-dfsg.diff

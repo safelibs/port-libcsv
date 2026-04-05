@@ -1,0 +1,67 @@
+From 93bf249e228658b73e21ff20fe590b2e305a3f2f Mon Sep 17 00:00:00 2001
+From: Robert Gamble <rgamble99@gmail.com>
+Date: Fri, 6 Jan 2017 18:54:05 -0500
+Subject: [PATCH] Update #include for csv.h in examples.
+
+---
+ examples/csvfix.c   | 2 +-
+ examples/csvinfo.c  | 2 +-
+ examples/csvtest.c  | 2 +-
+ examples/csvvalid.c | 2 +-
+ 4 files changed, 4 insertions(+), 4 deletions(-)
+
+diff --git a/examples/csvfix.c b/examples/csvfix.c
+index a88fbc0..a629dd3 100644
+--- a/examples/csvfix.c
++++ b/examples/csvfix.c
+@@ -7,7 +7,7 @@ csvfix - reads (possibly malformed) CSV data from input file
+ #include <stdlib.h>
+ #include <string.h>
+ #include <errno.h>
+-#include "libcsv/csv.h"
++#include "csv.h"
+ 
+ void cb1 (void *s, size_t i, void *outfile) {
+   csv_fwrite((FILE *)outfile, s, i);
+diff --git a/examples/csvinfo.c b/examples/csvinfo.c
+index 73735eb..fc8fdc8 100644
+--- a/examples/csvinfo.c
++++ b/examples/csvinfo.c
+@@ -7,7 +7,7 @@ csvinfo - reads CSV data from input file(s) and reports the number
+ #include <string.h>
+ #include <errno.h>
+ #include <stdlib.h>
+-#include "libcsv/csv.h"
++#include "csv.h"
+ 
+ struct counts {
+   long unsigned fields;
+diff --git a/examples/csvtest.c b/examples/csvtest.c
+index c46f570..5bfe158 100644
+--- a/examples/csvtest.c
++++ b/examples/csvtest.c
+@@ -8,7 +8,7 @@ csvtest - reads CSV data from stdin and output properly formed equivalent
+ #include <stdlib.h>
+ #include <string.h>
+ #include <errno.h>
+-#include "libcsv/csv.h"
++#include "csv.h"
+ 
+ static int put_comma;
+ 
+diff --git a/examples/csvvalid.c b/examples/csvvalid.c
+index b88c3b3..8be8e5f 100644
+--- a/examples/csvvalid.c
++++ b/examples/csvvalid.c
+@@ -7,7 +7,7 @@ csvvalid - determine if files are properly formed CSV files and display
+ #include <stdlib.h>
+ #include <string.h>
+ #include <errno.h>
+-#include "libcsv/csv.h"
++#include "csv.h"
+ 
+ int
+ main (int argc, char *argv[])
+-- 
+2.25.1
+
