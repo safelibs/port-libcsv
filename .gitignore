@@ -1,1 +1,12 @@
 /target
+/scripts/__pycache__/
+/*.buildinfo
+/*.changes
+/*.ddeb
+/safe/debian/.debhelper/
+/safe/debian/debhelper-build-stamp
+/safe/debian/files
+/safe/debian/*.substvars
+/safe/debian/libcsv-dev/
+/safe/debian/libcsv3/
+/safe/debian/tmp/

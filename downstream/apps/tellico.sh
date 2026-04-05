@@ -51,6 +51,7 @@ build() {
 
 probe() {
   local support_build="/work/target/downstream/build/tellico"
+  local probe_build="/tmp/downstream-tellico"
   local csvtest_bin=""
 
   downstream::set_app_context "$APP_ID"
@@ -62,8 +63,12 @@ probe() {
   csvtest_bin="$(downstream::find_built_file "$support_build" '*/src/tests/csvtest')"
   downstream::assert_links_to_packaged_libcsv "$csvtest_bin" tellico-csvtest
 
+  rm -rf "$probe_build"
+  mkdir -p "$probe_build"
+  cp -a "$support_build/." "$probe_build/"
+
   downstream::run_logged "$DOWNSTREAM_LOG_DIR/csvtest.log" \
-    bash -lc "cd '$support_build' && QT_QPA_PLATFORM=offscreen xvfb-run -a '$csvtest_bin'"
+    bash -lc "cd '$probe_build' && QT_QPA_PLATFORM=offscreen xvfb-run -a ctest -R '^csvtest$' --output-on-failure"
 
   test -s "$DOWNSTREAM_LOG_DIR/csvtest.log" || downstream::die "tellico csvtest log is empty"
 }
