@@ -3,7 +3,7 @@ use std::{
     io::{self, Write},
 };
 
-use libcsv::{
+use csv::{
     CSV_APPEND_NULL, CSV_COMMA, CSV_EINVALID, CSV_EMPTY_IS_NULL, CSV_EPARSE, CSV_ETOOBIG,
     CSV_QUOTE, CSV_SUCCESS, END_OF_INPUT, Error, Parser, fwrite, fwrite_with_quote, strerror,
     write, write_to_buffer, write_with_quote,

@@ -1,6 +1,6 @@
 use std::cell::RefCell;
 
-use libcsv::{
+use csv::{
     CSV_COMMA, CSV_EMPTY_IS_NULL, CSV_QUOTE, CSV_REPALL_NL, CSV_SPACE, CSV_STRICT, CSV_STRICT_FINI,
     CSV_TAB, END_OF_INPUT, Error, Parser, write_to_buffer, write_to_buffer_with_quote,
 };
