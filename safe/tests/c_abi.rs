@@ -1,6 +1,6 @@
 use std::{
     collections::BTreeMap,
-    ffi::{CStr, c_char, c_int, c_uchar, c_void},
+    ffi::{c_char, c_int, c_uchar, c_void, CStr},
     fs,
     mem::{align_of, size_of},
     path::{Path, PathBuf},
@@ -10,13 +10,13 @@ use std::{
 };
 
 use csv::{
-    CSV_APPEND_NULL, CSV_EMPTY_IS_NULL, CSV_EPARSE, CSV_QUOTE, CSV_SUCCESS, END_OF_INPUT,
     ffi::{
-        FILE, csv_fini, csv_free, csv_fwrite2, csv_get_buffer_size, csv_get_delim, csv_get_opts,
+        csv_fini, csv_free, csv_fwrite2, csv_get_buffer_size, csv_get_delim, csv_get_opts,
         csv_get_quote, csv_init, csv_parse, csv_parser, csv_set_blk_size, csv_set_delim,
         csv_set_free_func, csv_set_opts, csv_set_quote, csv_set_realloc_func, csv_set_space_func,
-        csv_set_term_func, csv_strerror, csv_write, csv_write2,
+        csv_set_term_func, csv_strerror, csv_write, csv_write2, FILE,
     },
+    CSV_APPEND_NULL, CSV_EMPTY_IS_NULL, CSV_EPARSE, CSV_QUOTE, CSV_SUCCESS, END_OF_INPUT,
 };
 
 static REALLOC_CALLS: AtomicUsize = AtomicUsize::new(0);
@@ -194,10 +194,11 @@ fn expected_exports() -> Vec<String> {
         .unwrap()
         .lines()
         .filter_map(|line| {
-            let trimmed = line.trim_start();
-            trimmed
-                .strip_prefix("csv_")
-                .map(|rest| format!("csv_{}", rest.split_whitespace().next().unwrap()))
+            let trimmed = line.trim();
+            if trimmed.is_empty() || trimmed.starts_with('*') || trimmed.starts_with("libcsv.so.") {
+                return None;
+            }
+            Some(trimmed.split_whitespace().next().unwrap().to_string())
         })
         .collect()
 }
@@ -224,7 +225,6 @@ fn actual_exports(library: &Path) -> Vec<String> {
             }
             Some(columns[7].replace("@@", "@"))
         })
-        .filter(|name| name.starts_with("csv_"))
         .collect::<Vec<_>>();
     exports.sort();
     exports
@@ -285,6 +285,10 @@ fn direct_wrappers_preserve_upstream_behavior() {
     assert_eq!(unsafe { csv_set_opts(std::ptr::null_mut(), 0) }, -1);
     assert_eq!(unsafe { csv_get_opts(std::ptr::null_mut()) }, -1);
     assert_eq!(unsafe { csv_get_buffer_size(std::ptr::null_mut()) }, 0);
+    assert_eq!(
+        unsafe { csv_fini(std::ptr::null_mut(), None, None, std::ptr::null_mut()) },
+        -1
+    );
 
     unsafe { csv_set_blk_size(&mut parser, 2) };
     unsafe {

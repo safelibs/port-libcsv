@@ -1,0 +1,76 @@
+{
+  "schema_version": 1,
+  "generated_at": "2026-04-05T14:24:43Z",
+  "matrix_report": "target/downstream/wave1-results.json",
+  "findings": [
+    {
+      "finding_id": "wave1-ffi-null-fini",
+      "app_ids": [
+        "readstat",
+        "tellico",
+        "csvutils-csvbreak",
+        "csvutils-csvcheck",
+        "csvutils-csvcount",
+        "csvutils-csvcut",
+        "csvutils-csvfix",
+        "csvutils-csvgrep",
+        "libcsv-example-csvfix",
+        "libcsv-example-csvinfo",
+        "libcsv-example-csvtest",
+        "libcsv-example-csvvalid"
+      ],
+      "category": "ffi",
+      "failing_step": "runtime",
+      "observed_symptom": "The Rust FFI wrapper aborted on csv_fini(NULL, ...) because it unconditionally dereferenced the parser pointer. Upstream returns -1 for that call.",
+      "expected_behavior": "csv_fini(NULL, ...) must return -1 without dereferencing the parser, matching original/libcsv.c.",
+      "linked_regression_test_file_paths": [
+        "safe/tests/c_abi.rs"
+      ],
+      "status": "resolved",
+      "assigned_wave": "wave1"
+    },
+    {
+      "finding_id": "wave1-abi-full-export-surface",
+      "app_ids": [
+        "readstat",
+        "tellico",
+        "csvutils-csvbreak",
+        "csvutils-csvcheck",
+        "csvutils-csvcount",
+        "csvutils-csvcut",
+        "csvutils-csvfix",
+        "csvutils-csvgrep",
+        "libcsv-example-csvfix",
+        "libcsv-example-csvinfo",
+        "libcsv-example-csvtest",
+        "libcsv-example-csvvalid"
+      ],
+      "category": "harness",
+      "failing_step": "link",
+      "observed_symptom": "The ABI verification only compared the csv_* subset of dynamic exports, so unexpected GLOBAL DEFAULT exports or symbol drift outside that prefix could evade the test suite.",
+      "expected_behavior": "The complete defined GLOBAL DEFAULT export set must exactly match original/debian/libcsv3.symbols.",
+      "linked_regression_test_file_paths": [
+        "safe/tests/c_abi.rs"
+      ],
+      "status": "resolved",
+      "assigned_wave": "wave1"
+    },
+    {
+      "finding_id": "wave1-downstream-fixture-regressions",
+      "app_ids": [
+        "readstat",
+        "csvutils-csvcheck",
+        "libcsv-example-csvvalid"
+      ],
+      "category": "harness",
+      "failing_step": "runtime",
+      "observed_symptom": "The wave1 matrix exercised readstat semicolon parsing plus csvcheck and csvvalid strict-quote failures only through probe scripts, leaving those client-visible semantics unpinned at the library test layer.",
+      "expected_behavior": "Committed regressions should reproduce those downstream fixture behaviors directly through the library APIs so wave1 compatibility can be checked without relying only on the full matrix.",
+      "linked_regression_test_file_paths": [
+        "safe/tests/downstream_regressions.rs"
+      ],
+      "status": "resolved",
+      "assigned_wave": "wave1"
+    }
+  ]
+}

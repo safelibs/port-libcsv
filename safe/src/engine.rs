@@ -630,7 +630,7 @@ impl Iterator for QuotedBytes<'_> {
 mod tests {
     use alloc::vec::Vec;
 
-    use super::{EntryBuffer, Error, ParserEngine, ParserState, write_size_from_stats};
+    use super::{write_size_from_stats, EntryBuffer, Error, ParserEngine, ParserState};
     use crate::{CSV_COMMA, CSV_QUOTE};
 
     #[derive(Debug, Default)]

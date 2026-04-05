@@ -4,9 +4,9 @@ use std::{
 };
 
 use csv::{
+    fwrite, fwrite_with_quote, strerror, write, write_to_buffer, write_with_quote, Error, Parser,
     CSV_APPEND_NULL, CSV_COMMA, CSV_EINVALID, CSV_EMPTY_IS_NULL, CSV_ENOMEM, CSV_EPARSE,
-    CSV_ETOOBIG, CSV_QUOTE, CSV_SUCCESS, END_OF_INPUT, Error, Parser, fwrite, fwrite_with_quote,
-    strerror, write, write_to_buffer, write_with_quote,
+    CSV_ETOOBIG, CSV_QUOTE, CSV_SUCCESS, END_OF_INPUT,
 };
 
 #[derive(Debug, PartialEq, Eq)]

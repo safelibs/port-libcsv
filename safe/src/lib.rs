@@ -158,9 +158,9 @@ pub mod engine;
 pub mod ffi;
 pub mod rust_api;
 
-pub use crate::engine::{Error, strerror};
+pub use crate::engine::{strerror, Error};
 pub use crate::rust_api::{
-    Parser, write, write_to_buffer, write_to_buffer_with_quote, write_with_quote,
+    write, write_to_buffer, write_to_buffer_with_quote, write_with_quote, Parser,
 };
 
 #[cfg(not(panic = "abort"))]

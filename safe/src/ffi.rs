@@ -5,10 +5,10 @@ use core::{
 };
 
 use crate::{
+    engine::{quoted_bytes, write_to_buffer_with_quote},
     CSV_APPEND_NULL, CSV_COMMA, CSV_CR, CSV_EMPTY_IS_NULL, CSV_ENOMEM, CSV_EPARSE, CSV_ETOOBIG,
     CSV_LF, CSV_QUOTE, CSV_REPALL_NL, CSV_SPACE, CSV_STRICT, CSV_STRICT_FINI, CSV_SUCCESS, CSV_TAB,
     END_OF_INPUT,
-    engine::{quoted_bytes, write_to_buffer_with_quote},
 };
 
 #[cfg(all(target_os = "linux", target_arch = "x86_64"))]
@@ -293,7 +293,11 @@ fn raw_bytes_mut<'a>(ptr: *mut c_void, len: usize) -> &'a mut [u8] {
 }
 
 fn bool_to_c_int(value: bool) -> c_int {
-    if value { 1 } else { 0 }
+    if value {
+        1
+    } else {
+        0
+    }
 }
 
 unsafe fn is_space_byte(predicate: csv_predicate, byte: u8) -> bool {
@@ -506,7 +510,11 @@ pub unsafe extern "C" fn csv_fini(
     cb2: csv_cb2,
     data: *mut c_void,
 ) -> c_int {
-    let parser = unsafe { require_mut_parser(parser).as_mut() };
+    let mut parser = match NonNull::new(parser) {
+        Some(parser) => parser,
+        None => return -1,
+    };
+    let parser = unsafe { parser.as_mut() };
 
     let mut quoted = parser.quoted != 0;
     let mut pstate = parser.pstate;

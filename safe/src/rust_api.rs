@@ -1,8 +1,8 @@
 use alloc::{vec, vec::Vec};
 
 use crate::{
+    engine::{write_size_with_quote, BytePredicate, Error, ParserEngine, VecBuffer},
     CSV_QUOTE,
-    engine::{BytePredicate, Error, ParserEngine, VecBuffer, write_size_with_quote},
 };
 
 #[cfg(not(panic = "abort"))]
