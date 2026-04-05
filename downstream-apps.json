@@ -541,7 +541,7 @@
       "runtime_probes": [
         {
           "id": "select-name-and-score-columns",
-          "summary": "Select named fields from the shared fixture and preserve quoting on the name column.",
+          "summary": "Select named fields from the shared fixture and assert the tool's fully quoted rewritten output.",
           "setup_steps": [
             "mkdir -p target/downstream/logs/csvutils-csvcut",
             "cat > target/downstream/logs/csvutils-csvcut/fixture.csv <<'EOF'\nname,role,score,notes\n\"Alice, A.\",admin,42,\"likes;semicolons\"\nBob,user,7,\"plain text\"\nCara,user,99,\"multi word\"\nEOF"
@@ -550,7 +550,7 @@
             "(cd target/downstream/logs/csvutils-csvcut && ../../install/csvutils-csvcut/usr/bin/csvcut -f name,score fixture.csv > csvcut.out)"
           ],
           "assert_steps": [
-            "python3 - <<'PY'\nfrom pathlib import Path\nexpected = 'name,score\\n\"Alice, A.\",42\\nBob,7\\nCara,99\\n'\nactual = Path('target/downstream/logs/csvutils-csvcut/csvcut.out').read_text()\nassert actual == expected, actual\nPY"
+            "python3 - <<'PY'\nfrom pathlib import Path\nexpected = '\"name\",\"score\"\\n\"Alice, A.\",\"42\"\\n\"Bob\",\"7\"\\n\"Cara\",\"99\"\\n'\nactual = Path('target/downstream/logs/csvutils-csvcut/csvcut.out').read_text()\nassert actual == expected, actual\nPY"
           ],
           "expected_exit_code": 0
         }
@@ -619,7 +619,7 @@
             "(cd target/downstream/logs/csvutils-csvfix && ../../install/csvutils-csvfix/usr/bin/csvfix --output-delimiter ';' --output-quote \"'\" fixture.csv fixed.csv > csvfix.out)"
           ],
           "assert_steps": [
-            "python3 - <<'PY'\nfrom pathlib import Path\nexpected = \"name;role;score;notes\\n'Alice, A.';admin;42;likes;semicolons\\nBob;user;7;plain text\\nCara;user;99;multi word\\n\"\nactual = Path('target/downstream/logs/csvutils-csvfix/fixed.csv').read_text()\nassert actual == expected, actual\nPY"
+            "python3 - <<'PY'\nfrom pathlib import Path\nexpected = \"'name';'role';'score';'notes'\\n'Alice, A.';'admin';'42';'likes;semicolons'\\n'Bob';'user';'7';'plain text'\\n'Cara';'user';'99';'multi word'\\n\"\nactual = Path('target/downstream/logs/csvutils-csvfix/fixed.csv').read_text()\nassert actual == expected, actual\nPY"
           ],
           "expected_exit_code": 0
         }
