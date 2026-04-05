@@ -242,6 +242,7 @@ const STR_ETOOBIG: &[u8] = b"data size too large\0";
 const STR_EINVALID: &[u8] = b"invalid status code\0";
 
 unsafe extern "C" {
+    fn abort() -> !;
     fn free(ptr: *mut c_void);
     fn fputc(ch: c_int, stream: *mut FILE) -> c_int;
     fn realloc(ptr: *mut c_void, size: usize) -> *mut c_void;
@@ -255,16 +256,26 @@ unsafe extern "C" fn default_free(ptr: *mut c_void) {
     unsafe { free(ptr) };
 }
 
+#[inline(always)]
+fn abort_process() -> ! {
+    unsafe { abort() }
+}
+
 fn require_mut_parser(ptr: *mut csv_parser) -> NonNull<csv_parser> {
-    NonNull::new(ptr).unwrap_or_else(|| panic!("csv_parser pointer must not be null"))
+    match NonNull::new(ptr) {
+        Some(ptr) => ptr,
+        None => abort_process(),
+    }
 }
 
 fn raw_bytes<'a>(ptr: *const c_void, len: usize) -> &'a [u8] {
     if len == 0 {
         &[]
     } else {
-        let ptr = NonNull::new(ptr.cast_mut())
-            .unwrap_or_else(|| panic!("source pointer must not be null"));
+        let ptr = match NonNull::new(ptr.cast_mut()) {
+            Some(ptr) => ptr,
+            None => abort_process(),
+        };
         unsafe { slice::from_raw_parts(ptr.as_ptr().cast::<u8>(), len) }
     }
 }
@@ -273,8 +284,10 @@ fn raw_bytes_mut<'a>(ptr: *mut c_void, len: usize) -> &'a mut [u8] {
     if len == 0 {
         &mut []
     } else {
-        let ptr =
-            NonNull::new(ptr).unwrap_or_else(|| panic!("destination pointer must not be null"));
+        let ptr = match NonNull::new(ptr) {
+            Some(ptr) => ptr,
+            None => abort_process(),
+        };
         unsafe { slice::from_raw_parts_mut(ptr.as_ptr().cast::<u8>(), len) }
     }
 }
@@ -309,9 +322,10 @@ unsafe fn increase_buffer(parser: &mut csv_parser) -> Result<(), ()> {
         return Err(());
     }
 
-    let realloc_func = parser
-        .realloc_func
-        .unwrap_or_else(|| panic!("realloc_func must not be null"));
+    let realloc_func = match parser.realloc_func {
+        Some(realloc_func) => realloc_func,
+        None => abort_process(),
+    };
 
     loop {
         let new_ptr = unsafe {
@@ -475,9 +489,10 @@ pub unsafe extern "C" fn csv_free(parser: *mut csv_parser) {
 
     let parser = unsafe { parser.as_mut() };
     if !parser.entry_buf.is_null() {
-        let free_func = parser
-            .free_func
-            .unwrap_or_else(|| panic!("free_func must not be null"));
+        let free_func = match parser.free_func {
+            Some(free_func) => free_func,
+            None => abort_process(),
+        };
         unsafe { free_func(parser.entry_buf.cast::<c_void>()) };
     }
 
@@ -491,12 +506,7 @@ pub unsafe extern "C" fn csv_fini(
     cb2: csv_cb2,
     data: *mut c_void,
 ) -> c_int {
-    let parser = unsafe {
-        require_mut_parser(parser)
-            .as_ptr()
-            .as_mut()
-            .unwrap_unchecked()
-    };
+    let parser = unsafe { require_mut_parser(parser).as_mut() };
 
     let mut quoted = parser.quoted != 0;
     let mut pstate = parser.pstate;
@@ -636,12 +646,7 @@ pub unsafe extern "C" fn csv_parse(
     cb2: csv_cb2,
     data: *mut c_void,
 ) -> usize {
-    let parser = unsafe {
-        require_mut_parser(parser)
-            .as_ptr()
-            .as_mut()
-            .unwrap_unchecked()
-    };
+    let parser = unsafe { require_mut_parser(parser).as_mut() };
     let input = raw_bytes(input, len);
     let mut pos = 0usize;
     let delim = parser.delim_char;

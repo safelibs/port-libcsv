@@ -110,6 +110,18 @@ fn panic_handler(_info: &PanicInfo<'_>) -> ! {
     unsafe { abort() }
 }
 
+#[cfg(all(panic = "abort", target_os = "linux", target_arch = "x86_64"))]
+core::arch::global_asm!(
+    r#"
+    .hidden rust_eh_personality
+    .globl rust_eh_personality
+    .type rust_eh_personality,@function
+rust_eh_personality:
+    jmp abort@PLT
+    .size rust_eh_personality, .-rust_eh_personality
+    "#
+);
+
 #[cfg(panic = "abort")]
 unsafe fn aligned_malloc(layout: Layout) -> *mut u8 {
     let mut out = ptr::null_mut();
