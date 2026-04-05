@@ -17,7 +17,8 @@ enum Event {
 
 #[derive(Clone)]
 struct Case<'a> {
-    name: &'a str,
+    upstream_case: &'a str,
+    options_label: &'a str,
     input: &'a [u8],
     options: u8,
     expected: Vec<Event>,
@@ -42,6 +43,7 @@ fn row(term: i32) -> Event {
 
 fn run_case(case: &Case<'_>) {
     let max_chunk_size = case.input.len().max(1);
+    let case_name = format!("{} [{}]", case.upstream_case, case.options_label);
 
     for chunk_size in 1..=max_chunk_size {
         let mut parser = Parser::new(case.options);
@@ -76,9 +78,9 @@ fn run_case(case: &Case<'_>) {
                 assert!(
                     case.expect_error,
                     "{}: unexpected parse error after consuming {consumed} of {bytes} bytes",
-                    case.name
+                    case_name
                 );
-                assert_eq!(parser.error(), Error::Parse, "{}: wrong error", case.name);
+                assert_eq!(parser.error(), Error::Parse, "{}: wrong error", case_name);
                 break;
             }
 
@@ -90,16 +92,16 @@ fn run_case(case: &Case<'_>) {
                 Ok(()) => assert!(
                     !case.expect_error,
                     "{}: expected parse error during finish",
-                    case.name
+                    case_name
                 ),
                 Err(err) => {
                     saw_error = true;
                     assert!(
                         case.expect_error,
                         "{}: unexpected finish error {err:?}",
-                        case.name
+                        case_name
                     );
-                    assert_eq!(err, Error::Parse, "{}: wrong finish error", case.name);
+                    assert_eq!(err, Error::Parse, "{}: wrong finish error", case_name);
                 }
             }
         }
@@ -108,12 +110,12 @@ fn run_case(case: &Case<'_>) {
             actual.into_inner(),
             case.expected,
             "{}: event mismatch at chunk size {chunk_size}",
-            case.name
+            case_name
         );
         assert_eq!(
             saw_error, case.expect_error,
             "{}: error expectation mismatch at chunk size {chunk_size}",
-            case.name
+            case_name
         );
     }
 }
@@ -254,7 +256,8 @@ fn translated_original_parser_cases() {
 
     let cases = vec![
         Case {
-            name: "test01",
+            upstream_case: "test01",
+            options_label: "0",
             input: b" 1,2 ,  3         ,4,5\r\n",
             options: 0,
             expected: test01_expected.clone(),
@@ -265,7 +268,8 @@ fn translated_original_parser_cases() {
             term_fn: None,
         },
         Case {
-            name: "test01_strict",
+            upstream_case: "test01",
+            options_label: "CSV_STRICT",
             input: b" 1,2 ,  3         ,4,5\r\n",
             options: CSV_STRICT,
             expected: test01_expected.clone(),
@@ -276,7 +280,8 @@ fn translated_original_parser_cases() {
             term_fn: None,
         },
         Case {
-            name: "test01_strict_empty_is_null",
+            upstream_case: "test01",
+            options_label: "CSV_STRICT | CSV_EMPTY_IS_NULL",
             input: b" 1,2 ,  3         ,4,5\r\n",
             options: CSV_STRICT | CSV_EMPTY_IS_NULL,
             expected: test01_expected,
@@ -287,7 +292,8 @@ fn translated_original_parser_cases() {
             term_fn: None,
         },
         Case {
-            name: "test02",
+            upstream_case: "test02",
+            options_label: "0",
             input: b",,,,,\n",
             options: 0,
             expected: test02_expected.clone(),
@@ -298,7 +304,8 @@ fn translated_original_parser_cases() {
             term_fn: None,
         },
         Case {
-            name: "test02_strict",
+            upstream_case: "test02",
+            options_label: "CSV_STRICT",
             input: b",,,,,\n",
             options: CSV_STRICT,
             expected: test02_expected,
@@ -309,7 +316,8 @@ fn translated_original_parser_cases() {
             term_fn: None,
         },
         Case {
-            name: "test03",
+            upstream_case: "test03",
+            options_label: "0",
             input: b"\",\",\",\",\"\"",
             options: 0,
             expected: test03_expected.clone(),
@@ -320,7 +328,8 @@ fn translated_original_parser_cases() {
             term_fn: None,
         },
         Case {
-            name: "test03_strict",
+            upstream_case: "test03",
+            options_label: "CSV_STRICT",
             input: b"\",\",\",\",\"\"",
             options: CSV_STRICT,
             expected: test03_expected,
@@ -331,7 +340,8 @@ fn translated_original_parser_cases() {
             term_fn: None,
         },
         Case {
-            name: "test04",
+            upstream_case: "test04",
+            options_label: "0",
             input: test04_data.as_bytes(),
             options: 0,
             expected: test04_expected.clone(),
@@ -342,7 +352,8 @@ fn translated_original_parser_cases() {
             term_fn: None,
         },
         Case {
-            name: "test04_strict",
+            upstream_case: "test04",
+            options_label: "CSV_STRICT",
             input: test04_data.as_bytes(),
             options: CSV_STRICT,
             expected: test04_expected,
@@ -353,7 +364,8 @@ fn translated_original_parser_cases() {
             term_fn: None,
         },
         Case {
-            name: "test05",
+            upstream_case: "test05",
+            options_label: "0",
             input: b"\"\"\"a,b\"\"\",,\" \"\"\"\" \",\"\"\"\"\" \",\" \"\"\"\"\",\"\"\"\"\"\"",
             options: 0,
             expected: test05_expected.clone(),
@@ -364,7 +376,8 @@ fn translated_original_parser_cases() {
             term_fn: None,
         },
         Case {
-            name: "test05_strict",
+            upstream_case: "test05",
+            options_label: "CSV_STRICT",
             input: b"\"\"\"a,b\"\"\",,\" \"\"\"\" \",\"\"\"\"\" \",\" \"\"\"\"\",\"\"\"\"\"\"",
             options: CSV_STRICT,
             expected: test05_expected.clone(),
@@ -375,7 +388,8 @@ fn translated_original_parser_cases() {
             term_fn: None,
         },
         Case {
-            name: "test05_strict_fini",
+            upstream_case: "test05",
+            options_label: "CSV_STRICT | CSV_STRICT_FINI",
             input: b"\"\"\"a,b\"\"\",,\" \"\"\"\" \",\"\"\"\"\" \",\" \"\"\"\"\",\"\"\"\"\"\"",
             options: CSV_STRICT | CSV_STRICT_FINI,
             expected: test05_expected,
@@ -386,7 +400,8 @@ fn translated_original_parser_cases() {
             term_fn: None,
         },
         Case {
-            name: "test06",
+            upstream_case: "test06",
+            options_label: "0",
             input: b"\" a, b ,c \", a b  c,",
             options: 0,
             expected: test06_expected.clone(),
@@ -397,7 +412,8 @@ fn translated_original_parser_cases() {
             term_fn: None,
         },
         Case {
-            name: "test06_strict",
+            upstream_case: "test06",
+            options_label: "CSV_STRICT",
             input: b"\" a, b ,c \", a b  c,",
             options: CSV_STRICT,
             expected: test06_expected,
@@ -408,7 +424,8 @@ fn translated_original_parser_cases() {
             term_fn: None,
         },
         Case {
-            name: "test07",
+            upstream_case: "test07",
+            options_label: "0",
             input: b"\" \"\" \" \" \"\" \"",
             options: 0,
             expected: test07_expected,
@@ -419,7 +436,8 @@ fn translated_original_parser_cases() {
             term_fn: None,
         },
         Case {
-            name: "test07_strict_error",
+            upstream_case: "test07b",
+            options_label: "CSV_STRICT",
             input: b"\" \"\" \" \" \"\" \"",
             options: CSV_STRICT,
             expected: Vec::new(),
@@ -430,7 +448,8 @@ fn translated_original_parser_cases() {
             term_fn: None,
         },
         Case {
-            name: "test08",
+            upstream_case: "test08",
+            options_label: "0",
             input: test08_data.as_bytes(),
             options: 0,
             expected: test08_expected,
@@ -441,7 +460,8 @@ fn translated_original_parser_cases() {
             term_fn: None,
         },
         Case {
-            name: "test09",
+            upstream_case: "test09",
+            options_label: "0",
             input: b"",
             options: 0,
             expected: test09_expected.clone(),
@@ -452,7 +472,8 @@ fn translated_original_parser_cases() {
             term_fn: None,
         },
         Case {
-            name: "test09_empty_is_null",
+            upstream_case: "test09",
+            options_label: "CSV_EMPTY_IS_NULL",
             input: b"",
             options: CSV_EMPTY_IS_NULL,
             expected: test09_expected,
@@ -463,7 +484,8 @@ fn translated_original_parser_cases() {
             term_fn: None,
         },
         Case {
-            name: "test10",
+            upstream_case: "test10",
+            options_label: "0",
             input: b"a\n",
             options: 0,
             expected: test10_expected,
@@ -474,7 +496,8 @@ fn translated_original_parser_cases() {
             term_fn: None,
         },
         Case {
-            name: "test11",
+            upstream_case: "test11",
+            options_label: "0",
             input: b"1,2 ,3,4\n",
             options: 0,
             expected: test11_expected.clone(),
@@ -485,7 +508,8 @@ fn translated_original_parser_cases() {
             term_fn: None,
         },
         Case {
-            name: "test11_empty_is_null",
+            upstream_case: "test11",
+            options_label: "CSV_EMPTY_IS_NULL",
             input: b"1,2 ,3,4\n",
             options: CSV_EMPTY_IS_NULL,
             expected: test11_expected,
@@ -496,7 +520,8 @@ fn translated_original_parser_cases() {
             term_fn: None,
         },
         Case {
-            name: "test12",
+            upstream_case: "test12",
+            options_label: "0",
             input: b"\n\n\n\n",
             options: 0,
             expected: test12_expected.clone(),
@@ -507,7 +532,8 @@ fn translated_original_parser_cases() {
             term_fn: None,
         },
         Case {
-            name: "test12_empty_is_null",
+            upstream_case: "test12",
+            options_label: "CSV_EMPTY_IS_NULL",
             input: b"\n\n\n\n",
             options: CSV_EMPTY_IS_NULL,
             expected: test12_expected,
@@ -518,7 +544,8 @@ fn translated_original_parser_cases() {
             term_fn: None,
         },
         Case {
-            name: "test12_repall_nl",
+            upstream_case: "test12b",
+            options_label: "CSV_REPALL_NL",
             input: b"\n\n\n\n",
             options: CSV_REPALL_NL,
             expected: test12b_expected.clone(),
@@ -529,7 +556,8 @@ fn translated_original_parser_cases() {
             term_fn: None,
         },
         Case {
-            name: "test12_repall_nl_empty_is_null",
+            upstream_case: "test12b",
+            options_label: "CSV_REPALL_NL | CSV_EMPTY_IS_NULL",
             input: b"\n\n\n\n",
             options: CSV_REPALL_NL | CSV_EMPTY_IS_NULL,
             expected: test12b_expected,
@@ -540,7 +568,8 @@ fn translated_original_parser_cases() {
             term_fn: None,
         },
         Case {
-            name: "test13",
+            upstream_case: "test13",
+            options_label: "0",
             input: b"\"abc\"",
             options: 0,
             expected: test13_expected,
@@ -551,7 +580,8 @@ fn translated_original_parser_cases() {
             term_fn: None,
         },
         Case {
-            name: "test14",
+            upstream_case: "test14",
+            options_label: "0",
             input: b"1, 2, 3,\n\r\n  \"4\", \r,",
             options: 0,
             expected: test14_expected.clone(),
@@ -562,7 +592,8 @@ fn translated_original_parser_cases() {
             term_fn: None,
         },
         Case {
-            name: "test14_strict",
+            upstream_case: "test14",
+            options_label: "CSV_STRICT",
             input: b"1, 2, 3,\n\r\n  \"4\", \r,",
             options: CSV_STRICT,
             expected: test14_expected,
@@ -573,7 +604,8 @@ fn translated_original_parser_cases() {
             term_fn: None,
         },
         Case {
-            name: "test15",
+            upstream_case: "test15",
+            options_label: "0",
             input: b"1, 2, 3,\n\r\n  \"4\", \r\"\"",
             options: 0,
             expected: test15_expected.clone(),
@@ -584,7 +616,8 @@ fn translated_original_parser_cases() {
             term_fn: None,
         },
         Case {
-            name: "test15_strict",
+            upstream_case: "test15",
+            options_label: "CSV_STRICT",
             input: b"1, 2, 3,\n\r\n  \"4\", \r\"\"",
             options: CSV_STRICT,
             expected: test15_expected,
@@ -595,7 +628,8 @@ fn translated_original_parser_cases() {
             term_fn: None,
         },
         Case {
-            name: "test16",
+            upstream_case: "test16",
+            options_label: "0",
             input: b"\"1\",\"2\",\" 3 ",
             options: 0,
             expected: test16_expected.clone(),
@@ -606,7 +640,8 @@ fn translated_original_parser_cases() {
             term_fn: None,
         },
         Case {
-            name: "test16_strict",
+            upstream_case: "test16",
+            options_label: "CSV_STRICT",
             input: b"\"1\",\"2\",\" 3 ",
             options: CSV_STRICT,
             expected: test16_expected.clone(),
@@ -617,7 +652,8 @@ fn translated_original_parser_cases() {
             term_fn: None,
         },
         Case {
-            name: "test16_strict_fini",
+            upstream_case: "test16b",
+            options_label: "CSV_STRICT | CSV_STRICT_FINI",
             input: b"\"1\",\"2\",\" 3 ",
             options: CSV_STRICT | CSV_STRICT_FINI,
             expected: vec![col(b"1"), col(b"2")],
@@ -628,7 +664,8 @@ fn translated_original_parser_cases() {
             term_fn: None,
         },
         Case {
-            name: "test17",
+            upstream_case: "test17",
+            options_label: "0",
             input: b" a\0b\0c ",
             options: 0,
             expected: test17_expected.clone(),
@@ -639,7 +676,8 @@ fn translated_original_parser_cases() {
             term_fn: None,
         },
         Case {
-            name: "test17_strict",
+            upstream_case: "test17",
+            options_label: "CSV_STRICT",
             input: b" a\0b\0c ",
             options: CSV_STRICT,
             expected: test17_expected.clone(),
@@ -650,7 +688,8 @@ fn translated_original_parser_cases() {
             term_fn: None,
         },
         Case {
-            name: "test17_strict_empty_is_null",
+            upstream_case: "test17",
+            options_label: "CSV_STRICT | CSV_EMPTY_IS_NULL",
             input: b" a\0b\0c ",
             options: CSV_STRICT | CSV_EMPTY_IS_NULL,
             expected: test17_expected,
@@ -661,7 +700,8 @@ fn translated_original_parser_cases() {
             term_fn: None,
         },
         Case {
-            name: "test19_empty_is_null",
+            upstream_case: "test19",
+            options_label: "CSV_EMPTY_IS_NULL",
             input: b"  , \"\" ,",
             options: CSV_EMPTY_IS_NULL,
             expected: test19_expected,
@@ -672,7 +712,8 @@ fn translated_original_parser_cases() {
             term_fn: None,
         },
         Case {
-            name: "custom01",
+            upstream_case: "custom01",
+            options_label: "0",
             input: b"'''a;b''';;' '''' ';''''' ';' ''''';''''''",
             options: 0,
             expected: custom01_expected,

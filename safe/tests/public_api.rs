@@ -4,9 +4,9 @@ use std::{
 };
 
 use csv::{
-    CSV_APPEND_NULL, CSV_COMMA, CSV_EINVALID, CSV_EMPTY_IS_NULL, CSV_EPARSE, CSV_ETOOBIG,
-    CSV_QUOTE, CSV_SUCCESS, END_OF_INPUT, Error, Parser, fwrite, fwrite_with_quote, strerror,
-    write, write_to_buffer, write_with_quote,
+    CSV_APPEND_NULL, CSV_COMMA, CSV_EINVALID, CSV_EMPTY_IS_NULL, CSV_ENOMEM, CSV_EPARSE,
+    CSV_ETOOBIG, CSV_QUOTE, CSV_SUCCESS, END_OF_INPUT, Error, Parser, fwrite, fwrite_with_quote,
+    strerror, write, write_to_buffer, write_with_quote,
 };
 
 #[derive(Debug, PartialEq, Eq)]
@@ -83,12 +83,17 @@ fn default_configuration_and_error_strings_are_public() {
 
     assert_eq!(Error::Success.code(), CSV_SUCCESS);
     assert_eq!(Error::Parse.code(), CSV_EPARSE);
+    assert_eq!(Error::NoMemory.code(), CSV_ENOMEM);
     assert_eq!(Error::TooBig.code(), CSV_ETOOBIG);
 
     assert_eq!(strerror(CSV_SUCCESS), "success");
     assert_eq!(
         strerror(CSV_EPARSE),
         "error parsing data while strict checking enabled"
+    );
+    assert_eq!(
+        strerror(CSV_ENOMEM),
+        "memory exhausted while increasing buffer size"
     );
     assert_eq!(strerror(CSV_ETOOBIG), "data size too large");
     assert_eq!(strerror(CSV_EINVALID), "invalid status code");
@@ -200,6 +205,7 @@ fn writer_helpers_match_buffer_and_io_variants() {
     let actual_len = write_to_buffer(&mut truncated, b"a\"b");
     assert_eq!(actual_len, expected.len());
     assert_eq!(&truncated, &expected[..truncated.len()]);
+    assert_eq!(write_to_buffer(&mut [], b"a\"b"), expected.len());
 
     assert_eq!(write(b"a\"b"), expected);
     assert_eq!(write_with_quote(b"a'b", b'\''), b"'a''b'");
